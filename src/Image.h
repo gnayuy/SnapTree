@@ -47,7 +47,6 @@ using namespace std;
 //#define COMPPRESSION_METHOD COMPRESSION_PACKBITS
 //#define COMPPRESSION_METHOD COMPRESSION_ADOBE_DEFLATE
 
-
 enum  axis { vertical=1, inv_vertical=-1, horizontal=2, inv_horizontal=-2, depth=3, inv_depth=-3, axis_invalid=0 };
 
 //

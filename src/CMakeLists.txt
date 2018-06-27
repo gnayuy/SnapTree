@@ -27,12 +27,12 @@ ENDIF(TIFF_FOUND)
 
 # system settings
 IF(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-SET(CMAKE_CXX_FLAGS "-std=c++11 -O3 -lm -fopenmp -pthread" CACHE STRING "CXX Compiler Flags" FORCE)
+SET(CMAKE_CXX_FLAGS "-std=c++14 -O3 -lm -fopenmp -pthread" CACHE STRING "CXX Compiler Flags" FORCE)
 ADD_DEFINITIONS(-DUse_OpenMP)
 ENDIF()
 
 IF(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-SET(CMAKE_CXX_FLAGS "-std=c++11 -O3 -fopenmp" CACHE STRING "CXX Compiler Flags" FORCE)
+SET(CMAKE_CXX_FLAGS "-std=c++14 -O3 -fopenmp" CACHE STRING "CXX Compiler Flags" FORCE)
 SET(CMAKE_MACOSX_RPATH 1)
 ENDIF()
 
