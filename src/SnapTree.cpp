@@ -74,15 +74,18 @@ int Tree::init(string outdir, long dimx, long dimy, long dimz, long dimc, int by
         layer.dim_H = (uint32)(dimx/pow(2,res_i));
         layer.dim_D = (uint32)(dimz/pow(2,res_i));
 
+        layer.vs_x = pow(2,res_i);
+        layer.vs_y = pow(2,res_i);
+        layer.vs_z = pow(2,res_i);
+
         layer.rows = (layer.dim_V%cubey==0)?floor(layer.dim_V/cubey):floor(layer.dim_V/cubey)+1;
         layer.cols = (layer.dim_H%cubex==0)?floor(layer.dim_H/cubex):floor(layer.dim_H/cubex)+1;
+        layer.ncubes = (layer.dim_D%cubez==0)?floor(layer.dim_D/cubez):floor(layer.dim_D/cubez)+1;
 
         stringstream filepath;
         filepath <<outdir<<"/RES"<<layer.dim_V<<"x"<<layer.dim_H<<"x"<<layer.dim_D;
 
         layer.layerName = filepath.str();
-
-        layer.ncubes = (layer.dim_D%cubez==0)?floor(layer.dim_D/cubez):floor(layer.dim_D/cubez)+1;
 
         //
         for(int row = 0; row < layer.rows; row++)
@@ -249,11 +252,6 @@ SnapTree::SnapTree(string inputdir, string outputdir, int scales, int genMetaInf
 
         split = true;
     }
-    else
-    {
-        zstart = 0;
-        zend = depth;
-    }
 
     if(resolutions<1)
     {
@@ -265,15 +263,15 @@ SnapTree::SnapTree(string inputdir, string outputdir, int scales, int genMetaInf
     srcdir.assign(inputdir);
     dstdir.assign(outputdir);
 
+    //
+    omp_set_num_threads(omp_get_max_threads());
+
     // generate meta info only
     if(genMetaInfo && inputImageDimensions)
     {
         index();
         exit(0);
     }
-
-    //
-    omp_set_num_threads(omp_get_max_threads());
 
     //
     if(init())
@@ -342,6 +340,12 @@ int SnapTree::init()
         cout<<"Image Info obtained from "<<firstfilepath<<endl;
     }
 
+    if(split==false)
+    {
+        zstart = 0;
+        zend = depth;
+    }
+
     cout<<"Image Size "<<width<<"x"<<height<<"x"<<depth<<"x"<<color<<" with "<<datatype<<endl;
 
     //
@@ -377,17 +381,6 @@ int SnapTree::init()
 
     cout<<"resolutions "<<resolutions<<endl;
 
-    DIR *outdir = opendir(dstdir.c_str());
-    if(outdir == NULL)
-    {
-        // mkdir outdir
-        if(makeDir(dstdir.c_str()))
-        {
-            cout<<"fail in mkdir "<<dstdir<<endl;
-            return -1;
-        }
-    }
-
     // Make Hierarchical Dirs and blank TIFF images between (zstart, zend)
     map<int, Layer>::iterator res_iter = meta.layers.begin();
     while(res_iter != meta.layers.end())
@@ -401,8 +394,10 @@ int SnapTree::init()
         //
         Layer layer = (res_iter++)->second;
 
-        int zs = startZ/meta.cubez;
-        int ze = endZ/meta.cubez;
+        int zs = getN(startZ, meta.cubez);
+        int ze = getN(endZ, meta.cubez);
+
+        cout<<"zs "<<zs<<" ze "<<ze<<" "<<layer.ncubes<<endl;
 
         //
         map<string, YXFolder>::iterator iter = layer.yxfolders.begin();
@@ -442,13 +437,6 @@ int SnapTree::init()
             } // cube
         } // yxfolder
     } // layer
-
-
-    //
-    if(outdir)
-    {
-        closedir(outdir);
-    }
 
     //
     return 0;
@@ -1135,6 +1123,21 @@ int SnapTree::index()
 
     // voxel size 1 micron by default
     // original offsets 0 mm by default
+
+    DIR *outdir = opendir(dstdir.c_str());
+    if(outdir == NULL)
+    {
+        // mkdir outdir
+        if(makeDir(dstdir.c_str()))
+        {
+            cout<<"fail in mkdir "<<dstdir<<endl;
+            return -1;
+        }
+    }
+    else
+    {
+        closedir(outdir);
+    }
 
     auto start = std::chrono::high_resolution_clock::now();
 

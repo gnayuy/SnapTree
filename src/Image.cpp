@@ -2,6 +2,25 @@
 
 #include "Image.h"
 
+
+//
+int getN(int a, int b)
+{
+    if(b==0)
+    {
+        return -1;
+    }
+
+    if(a%b==0)
+    {
+        return (a/b);
+    }
+    else
+    {
+        return (a/b + 1);
+    }
+}
+
 //
 void ssclear(stringstream *stringStreamInMemory)
 {

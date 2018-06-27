@@ -58,6 +58,9 @@ void del1dp(T *&p)
 }
 
 //
+int getN(int a, int b);
+
+//
 void ssclear(stringstream *stringStreamInMemory);
 
 //
