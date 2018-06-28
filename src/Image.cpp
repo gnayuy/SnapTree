@@ -227,6 +227,7 @@ void halveSample(uint8* img, int height, int width, int depth, int method, int b
         }
         else if ( method == HALVE_BY_MAX )
         {
+            #pragma omp parallel for collapse(3)
             for(long z=0; z<d; z++)
             {
                 for(long i=0; i<h; i++)

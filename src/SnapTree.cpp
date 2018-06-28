@@ -70,9 +70,9 @@ int Tree::init(string outdir, long dimx, long dimy, long dimz, long dimc, int by
         //
         Layer layer;
 
-        layer.dim_V = (uint32)(dimy/pow(2,res_i));
-        layer.dim_H = (uint32)(dimx/pow(2,res_i));
-        layer.dim_D = (uint32)(dimz/pow(2,res_i));
+        layer.dim_V = (uint32)(dimy/(uint32)pow(2,res_i));
+        layer.dim_H = (uint32)(dimx/(uint32)pow(2,res_i));
+        layer.dim_D = (uint32)(dimz/(uint32)pow(2,res_i));
 
         layer.vs_x = pow(2,res_i);
         layer.vs_y = pow(2,res_i);
@@ -217,6 +217,8 @@ SnapTree::SnapTree(string inputdir, string outputdir, int scales, int genMetaInf
     block_width = 256;
     block_height = 256;
     block_depth = 32; //
+
+    outDatatype = 1; // 8-bit
 
     meta.cubex = block_width;
     meta.cubey = block_height;
@@ -388,8 +390,8 @@ int SnapTree::init()
         //
         uint32 res_i = res_iter->first;
 
-        uint32 startZ = (uint32)(zstart/pow(2,res_i));
-        uint32 endZ = (uint32)(zend/pow(2,res_i));
+        uint32 startZ = (uint32)(zstart/(uint32)pow(2,res_i));
+        uint32 endZ = (uint32)(zend/(uint32)pow(2,res_i));
 
         //
         Layer layer = (res_iter++)->second;
@@ -514,604 +516,215 @@ uint8 *SnapTree::load(long zs, long ze)
 
 int SnapTree::reformat()
 {
-    // meta
-//    vector<LAYER> layers;
-
-//    //
-//    int stack_block[TMITREE_MAX_HEIGHT];
-//    int slice_start[TMITREE_MAX_HEIGHT];
-//    int slice_end[TMITREE_MAX_HEIGHT];
-
-//    int nzsize[TMITREE_MAX_HEIGHT];
-
-//    for(int res_i=0; res_i< resolutions; res_i++)
-//    {
-//        stack_block[res_i] = 0;
-//        slice_start[res_i] = 0;
-//        slice_end[res_i] = slice_start[res_i] + stacks_D[res_i][0][0][0] - 1;
-
-//        //cout<<"slice_end["<<res_i<<"] "<<slice_end[res_i]<<endl;
-
-//        nzsize[res_i] = 0;
-//    }
-
-//    //
-//    for(long z=0, z_parts=1; z<depth; z+=z_max_res, z_parts++)
-//    {
-//        if(!genMetaInfoOnly && !genZeroDataOnly)
-//        {
-//            auto start = std::chrono::high_resolution_clock::now();
-
-//            ubuffer = load(z,(z+z_max_res <= depth) ? (z+z_max_res) : depth);
-
-//            auto end = std::chrono::high_resolution_clock::now();
-
-//            cout<<"load a sub volume takes "<<std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()<<" ms."<<endl;
-
-//            //
-//            if(datatype>1 && nbits)
-//            {
-//                long totalvoxels = (height * width * ((z_ratio>0) ? z_max_res : (depth%z_max_res)))*color;
-//                if ( datatype == 2 )
-//                {
-//                    #pragma omp parallel
-//                    {
-//                        uint16 *ptr = (uint16 *) ubuffer;
-//                        #pragma omp for
-//                        for(long i=0; i<totalvoxels; i++ )
-//                        {
-//                            // ptr[i] = ptr[i] >> nbits << nbits; // 16-bit
-//                            ptr[i] = ptr[i] >> nbits;
-//                        }
-//                    }
-//                }
-//            }
-
-//        } // genMetaInfoOnly
-
-//        //saving the sub volume
-//        auto start = std::chrono::high_resolution_clock::now();
-//        for(int i=0; i< resolutions; i++)
-//        {
-//            //cout<<"resolution "<<i<<endl;
-
-//            // meta info for index()
-//            LAYER layer;
-//            layer.rows = n_stacks_V[i];
-//            layer.cols = n_stacks_H[i];
-
-//            layer.vs_x = pow(2, i);
-//            layer.vs_y = pow(2, i);
-//            layer.vs_z = pow(2, halve_pow2[i]);
-
-//            layer.dim_V = (uint32)(height/layer.vs_y);
-//            layer.dim_H = (uint32)(width/layer.vs_x);
-//            layer.dim_D = (uint32)(depth/layer.vs_z);
-
-//            //
-//            long nCopies = 0;
-//            string srcFile;
-
-//            // check if current block is changed
-//            if ( (z / pow(2,halve_pow2[i])) > slice_end[i] ) {
-//                stack_block[i]++;
-//                slice_start[i] = slice_end[i] + 1;
-//                slice_end[i] += stacks_D[i][0][0][stack_block[i]];
-//            }
-
-//            // find abs_pos_z at resolution i
-//            std::stringstream abs_pos_z;
-//            abs_pos_z.width(6);
-//            abs_pos_z.fill('0');
-//            abs_pos_z << (int)((pow(2,halve_pow2[i])*slice_start[i]) * 10);
-
-//            // compute the number of slice of previous groups at resolution i
-//            // note that z_parts in the number and not an index (starts from 1)
-//            long n_slices_pred  = (z_parts - 1) * z_max_res / pow(2,halve_pow2[i]);
-
-//            // buffer size along D is different when the remainder of the subdivision by z_max_res is considered
-//            long z_size = (z_ratio>0) ? z_max_res : (depth%z_max_res);
-
-//            //cout<<"z_parts "<<z_parts<<" z_ratio "<<z_ratio<<" z_max_res "<<z_max_res<<" depth "<<depth<<endl;
-
-//            //halvesampling resolution if current resolution is not the deepest one
-//            if(i!=0)
-//            {
-//                if(!genMetaInfoOnly && !genZeroDataOnly)
-//                {
-//                    if ( halve_pow2[i] == (halve_pow2[i-1]+1) )
-//                    {
-//                        //cout<<"3D downsampling \n";
-
-//                        // 3D
-//                        halveSample(ubuffer,(int)height/(pow(2,i-1)),(int)width/(pow(2,i-1)),(int)z_size/(pow(2,halve_pow2[i-1])),HALVE_BY_MAX,datatype);
-
-//                        // debug
-//                        // writeTiff3DFile("test.tif", ubuffer, (int)width/(pow(2,i)), (int)height/(pow(2,i)), (int)z_size/(pow(2,halve_pow2[i])), 1, datatype);
-//                    }
-//                    else if ( halve_pow2[i] == halve_pow2[i-1] )
-//                    {
-//                        //cout<<"2D downsampling \n";
-
-//                        // 2D
-//                        halveSample2D(ubuffer,(int)height/(pow(2,i-1)),(int)width/(pow(2,i-1)),(int)z_size/(pow(2,halve_pow2[i-1])),HALVE_BY_MAX,datatype);
-//                    }
-//                    else
-//                    {
-//                        cout<<"halve sampling level "<<halve_pow2[i]<<" not supported at resolution "<<i<<endl;
-//                        return -1;
-//                    }
-//                }
-//            }
-
-//            //saving at current resolution if it has been selected and iff buffer is at least 1 voxel (Z) deep
-//            if((z_size/(pow(2,halve_pow2[i]))) > 0)
-//            {
-//                //storing in 'base_path' the absolute path of the directory that will contain all stacks
-//                std::stringstream base_path;
-//                base_path << filePaths[i] << "/";
-
-//                //cout<<"base_path "<<base_path.str()<<endl;
-
-//                // meta info for index()
-////                bool addMeta = false;
-
-////                if(z == 0)
-////                {
-////                    addMeta = true;
-////                }
-////                else if( (int)(slice_start[i] / stacks_D[i][0][0][stack_block[i]]) > nzsize[i])
-////                {
-////                    nzsize[i]++;
-////                    addMeta = true;
-////                }
-
-//                //looping on new stacks
-//                for(int stack_row = 0, start_height = 0, end_height = 0; stack_row < n_stacks_V[i]; stack_row++)
-//                {
-//                    //incrementing end_height
-//                    end_height = start_height + stacks_V[i][stack_row][0][0]-1;
-
-//                    //computing V_DIR_path and creating the directory the first time it is needed
-//                    std::stringstream multires_merging_x_pos;
-//                    multires_merging_x_pos.width(6);
-//                    multires_merging_x_pos.fill('0');
-//                    multires_merging_x_pos << start_height*(int)pow(2.0,i) * 10;
-
-//                    std::stringstream V_DIR_path;
-//                    V_DIR_path << base_path.str() << multires_merging_x_pos.str();
-
-//                    //cout<<"V_DIR_path "<<V_DIR_path.str()<<endl;
-
-//                    if(z==0)
-//                    {
-//                        if(makeDir(V_DIR_path.str().c_str()))
-//                        {
-//                            cout<<" unable to create V_DIR "<<V_DIR_path.str()<<endl;
-//                            return -1;
-//                        }
-//                    }
-
-//                    int sz[4];
-//                    // int datatype_out = 2; // changed to 16-bit 6/1/2018 yy
-//                    int datatype_out = 1;
-
-//                    //
-//                    for(int stack_column = 0, start_width=0, end_width=0; stack_column < n_stacks_H[i]; stack_column++)
-//                    {
-//                        //
-//                        end_width  = start_width  + stacks_H[i][stack_row][stack_column][0]-1;
-
-//                        //computing H_DIR_path and creating the directory the first time it is needed
-//                        std::stringstream multires_merging_y_pos;
-//                        multires_merging_y_pos.width(6);
-//                        multires_merging_y_pos.fill('0');
-//                        multires_merging_y_pos << start_width*(int)pow(2.0,i) * 10;
-
-//                        std::stringstream H_DIR_path;
-//                        H_DIR_path << V_DIR_path.str() << "/" << multires_merging_x_pos.str() << "_" << multires_merging_y_pos.str();
-
-//                        //cout<<"H_DIR_path "<<H_DIR_path.str()<<endl;
-
-//                        //
-//                        if(z==0)
-//                        {
-//                            if(makeDir(H_DIR_path.str().c_str()))
-//                            {
-//                                cout<<" unable to create H_DIR "<<H_DIR_path.str()<<endl;
-//                                return -1;
-//                            }
-//                            else
-//                            {
-//                                // the directory has been created for the first time
-//                                // initialize block files
-//                                sz[0] = stacks_H[i][stack_row][stack_column][0];
-//                                sz[1] = stacks_V[i][stack_row][stack_column][0];
-//                                sz[3] = 1;
-
-//                                //
-//                                int slice_start_temp = 0;
-//                                for ( int j=0; j < n_stacks_D[i]; j++ )
-//                                {
-//                                    bool copying = false;
-
-//                                    if(sz[2] == stacks_D[i][stack_row][stack_column][j])
-//                                        copying = true;
-
-//                                    sz[2] = stacks_D[i][stack_row][stack_column][j];
-
-//                                    //cout<<" ... "<<j<<" sz[2] "<<sz[2]<<" slice_end "<<slice_end[i]<<endl;
-
-//                                    std::stringstream abs_pos_z_temp;
-//                                    abs_pos_z_temp.width(6);
-//                                    abs_pos_z_temp.fill('0');
-//                                    abs_pos_z_temp << (int)((pow(2,halve_pow2[i])*slice_start_temp) * 10);
-
-//                                    std::stringstream img_path_temp;
-//                                    img_path_temp << H_DIR_path.str() << "/" << multires_merging_x_pos.str() << "_" << multires_merging_y_pos.str() << "_" << abs_pos_z_temp.str()<<".tif";
-
-//                                    //cout<<"when z=0: z "<<z<<" ("<<sz[0]<<", "<<sz[1]<<", "<<sz[2]<<") "<<abs_pos_z_temp.str()<<endl;
-
-//                                    if(!genMetaInfoOnly)
-//                                    {
-//                                        // auto start_init = std::chrono::high_resolution_clock::now();
-//                                        if(nCopies==0)
-//                                        {
-//                                            if(initTiff3DFile((char *)img_path_temp.str().c_str(),sz[0],sz[1],sz[2],sz[3],datatype_out) != 0)
-//                                            {
-//                                                cout<<"fail in initTiff3DFile\n";
-//                                                return -1;
-//                                            }
-//                                            srcFile = img_path_temp.str();
-//                                        }
-//                                        else if(copying)
-//                                        {
-//                                            copyFile(srcFile.c_str(), img_path_temp.str().c_str());
-//                                        }
-//                                        else
-//                                        {
-//                                            if(initTiff3DFile((char *)img_path_temp.str().c_str(),sz[0],sz[1],sz[2],sz[3],datatype_out) != 0)
-//                                            {
-//                                                cout<<"fail in initTiff3DFile\n";
-//                                                return -1;
-//                                            }
-//                                        }
-//                                        nCopies++;
-//                                    }// genMetaInfoOnly
-
-//                                    //
-//                                    //auto end_init = std::chrono::high_resolution_clock::now();
-//                                    //cout<<"writing chunk images takes "<<std::chrono::duration_cast<std::chrono::milliseconds>(end_init - start_init).count()<<" ms."<<endl;
-
-//                                    //
-//                                    slice_start_temp += (int)sz[2];
-//                                } // j
-//                            } // after create H_DIR
-//                        } // z
-
-//                        //saving HERE
-
-//                        //
-//                        std::stringstream partial_img_path;
-//                        partial_img_path << H_DIR_path.str() << "/" << multires_merging_x_pos.str() << "_" << multires_merging_y_pos.str() << "_";
-
-//                        int slice_ind = (int)(n_slices_pred - slice_start[i]);
-
-//                        std::stringstream img_path;
-//                        img_path << partial_img_path.str() << abs_pos_z.str() << ".tif";
-
-//                        //cout<<"img_path "<<img_path.str()<<endl;
-
-//                        //
-//                        void *fhandle = 0;
-//                        int  n_pages_block = stacks_D[i][0][0][stack_block[i]]; // number of pages of current block
-//                        bool block_changed = false; // true if block is changed executing the next for cycle
-
-//                        if(!genMetaInfoOnly && !genZeroDataOnly)
-//                        {
-//                            if(openTiff3DFile((char *)img_path.str().c_str(),(char *)("a"),fhandle,true))
-//                            {
-//                                cout<<"fail in openTiff3DFile"<<endl;
-//                                return -1;
-//                            }
-//                        }// genMetaInfoOnly
-
-//                        //
-//                        sz[0] = end_width - start_width + 1;
-//                        sz[1] = end_height - start_height + 1;
-//                        sz[2] = n_pages_block;
-//                        sz[3] = 1;
-//                        long szChunk = sz[0]*sz[1]*sz[3]*datatype_out;
-//                        unsigned char *p = NULL;
-
-//                        if(!genMetaInfoOnly && !genZeroDataOnly)
-//                        {
-//                            try
-//                            {
-//                                p = new unsigned char [szChunk];
-//                                memset(p, 0, szChunk);
-//                            }
-//                            catch(...)
-//                            {
-//                                cout<<"fail to alloc memory \n";
-//                            }
-//                        }// genMetaInfoOnly
-
-//                        // meta info for index()
-////                        BLOCK block;
-
-////                        if(addMeta)
-////                        {
-////                            block.width = sz[0];
-////                            block.height = sz[1];
-////                            block.depths.push_back(sz[2]);
-////                            block.color = sz[3];
-////                            block.bytesPerVoxel = datatype_out;
-
-////                            block.dirName = multires_merging_x_pos.str() + "/" + multires_merging_x_pos.str() + "_" + multires_merging_y_pos.str();
-////                            block.offset_H = start_width;
-////                            block.offset_V = start_height;
-////                            block.fileNames.push_back(multires_merging_x_pos.str() + "_" + multires_merging_y_pos.str() + "_" + abs_pos_z.str() + ".tif");
-////                            block.offsets_D.push_back(slice_start[i]);
-////                        }
-
-//                        bool blocksaved = false;
-
-//                        //cout<<"z "<<z<<endl;
-
-//                        // WARNING: assumes that block size along z is not less that z_size/(powInt(2,i))
-//                        for(int buffer_z=0; buffer_z<(int)(z_size/(pow(2,halve_pow2[i]))); buffer_z++, slice_ind++)
-//                        {
-//                            //cout<<"buffer_z "<<buffer_z<<" slice_ind "<<slice_ind<<" z "<<z<<" z_size/(pow(2,halve_pow2[i]) "<<z_size/(pow(2,halve_pow2[i]))<<" z_size "<<z_size<<endl;
-//                            //cout<<"(z / pow(2,halve_pow2[i]) + buffer_z) "<<z / pow(2,halve_pow2[i]) + buffer_z<<" slice_end["<<i<<"] "<<slice_end[i]<<endl;
-
-//                            // z is an absolute index in volume while slice index should be computed on a relative basis
-//                            if ( (int)(z / pow(2,halve_pow2[i]) + buffer_z) > slice_end[i] && !block_changed)
-//                            {
-//                                //cout<<"block changed "<<slice_end[i]<<endl;
-
-//                                // start a new block along z
-//                                std::stringstream abs_pos_z_next;
-//                                abs_pos_z_next.width(6);
-//                                abs_pos_z_next.fill('0');
-//                                abs_pos_z_next << (pow(2,halve_pow2[i])*(slice_end[i]+1)) * 10;
-//                                img_path.str("");
-//                                img_path << partial_img_path.str() << abs_pos_z_next.str() << ".tif";
-
-//                                //cout<<"... img_path "<<img_path.str()<<endl;
-
-//                                slice_ind = 0;
-
-//                                if(!genMetaInfoOnly && !genZeroDataOnly)
-//                                {
-//                                    // close(fhandle) i.e. file corresponding to current block
-//                                    TIFFClose((TIFF *) fhandle);
-//                                    if(openTiff3DFile((char *)img_path.str().c_str(),(char *)("a"),fhandle,true))
-//                                    {
-//                                        cout<<"fail in openTiff3DFile"<<endl;
-//                                        return -1;
-//                                    }
-//                                }// genMetaInfoOnly
-//                                n_pages_block = stacks_D[i][0][0][stack_block[i]+1];
-//                                block_changed = true;
-
-//                                sz[2] = n_pages_block;
-//                                szChunk = sz[0]*sz[1]*sz[3]*datatype_out;
-
-//                                //
-//                                if(!genMetaInfoOnly && !genZeroDataOnly)
-//                                {
-//                                    if(!p)
-//                                    {
-//                                        try
-//                                        {
-//                                            p = new unsigned char [szChunk];
-//                                            memset(p, 0, szChunk);
-//                                        }
-//                                        catch(...)
-//                                        {
-//                                            cout<<"fail to alloc memory \n";
-//                                        }
-//                                    }
-//                                    else
-//                                    {
-//                                        memset(p, 0, szChunk);
-//                                    }
-//                                }// genMetaInfoOnly
-//                            }
-
-//                            //
-//                            if(!genMetaInfoOnly && !genZeroDataOnly)
-//                            {
-//                                //
-//                                long raw_img_width = width/(pow(2,i));
-
-//                                //
-//                                if(datatype == 2)
-//                                {
-//                                    // 16-bit input
-//                                    long offset = buffer_z*(long)(height/pow(2,i))*(long)(width/pow(2,i));
-//                                    uint16 *raw_ch16 = (uint16 *) ubuffer + offset;
-
-//                                    //cout<<"pointer p: "<<static_cast<void*>(p)<<endl;
-//                                    //cout<<"pointer raw data: "<<static_cast<void*>(raw_ch16)<<endl;
-
-//                                    if(datatype_out == 1)
-//                                    {
-//                                        // 8-bit output
-
-//                                        //
-//                                        #pragma omp parallel for collapse(2)
-//                                        for(long y=0; y<sz[1]; y++)
-//                                        {
-//                                            for(long x=0; x<sz[0]; x++)
-//                                            {
-//                                                p[y*sz[0]+x] = raw_ch16[(y+start_height)*(raw_img_width) + (x+start_width)];
-//                                            }
-//                                        }
-
-//                                        // temporary save all the way (version 1.01 5/25/2018)
-////                                        int temp_n_chans = color;
-////                                        if(temp_n_chans==2)
-////                                            temp_n_chans++;
-
-//                                        appendSlice2Tiff3DFile(fhandle,slice_ind,(unsigned char *)p,sz[0],sz[1],color,8,sz[2]);
-//                                        blocksaved = true;
-
-//                                        //
-////                                        int numNonZeros = 0;
-////                                        int saveVoxelThresh = 1;
-
-////                                        #pragma omp parallel for reduction(+:numNonZeros)
-////                                        for(int x=0; x<szChunk; x++)
-////                                        {
-////                                            if(p[x]>0)
-////                                                numNonZeros++;
-////                                        }
-
-////                                        if(numNonZeros>saveVoxelThresh)
-////                                        {
-////                                            int temp_n_chans = color;
-////                                            if(temp_n_chans==2)
-////                                                temp_n_chans++;
-
-////                                            appendSlice2Tiff3DFile(fhandle,slice_ind,(unsigned char *)p,sz[0],sz[1],temp_n_chans,8,sz[2]);
-////                                            blocksaved = true;
-////                                        }
-//                                    }
-//                                    else
-//                                    {
-//                                        // 16-bit output
-
-//                                        uint16 *out_ch16 = (uint16 *) p;
-
-//                                        //
-//                                        #pragma omp parallel for collapse(2)
-//                                        for(long y=0; y<sz[1]; y++)
-//                                        {
-//                                            for(long x=0; x<sz[0]; x++)
-//                                            {
-//                                                out_ch16[y*sz[0]+x] = raw_ch16[(y+start_height)*(raw_img_width) + (x+start_width)];
-//                                            }
-//                                        }
-
-//                                        // temporary save all the way (version 1.01 5/25/2018)
-//                                        int temp_n_chans = color;
-//                                        if(temp_n_chans==2)
-//                                            temp_n_chans++;
-
-//                                        appendSlice2Tiff3DFile(fhandle,slice_ind,(unsigned char *)out_ch16,sz[0],sz[1],temp_n_chans,16,sz[2]);
-//                                        blocksaved = true;
-
-//                                    }
-
-//                                }
-//                                else if(datatype == 1)
-//                                {
-//                                    // 8-bit input
-//                                    long offset = buffer_z*(long)(height/pow(2,i))*(long)(width/pow(2,i));
-//                                    uint8 *raw_ch8 = (uint8 *) ubuffer + offset;
-
-//                                    if(datatype_out == 1)
-//                                    {
-//                                        // 8-bit output
-
-//                                        //
-//                                        #pragma omp parallel for collapse(2)
-//                                        for(long y=0; y<sz[1]; y++)
-//                                        {
-//                                            for(long x=0; x<sz[0]; x++)
-//                                            {
-//                                                p[y*sz[0]+x] = raw_ch8[(y+start_height)*(raw_img_width) + (x+start_width)];
-//                                            }
-//                                        }
-
-//                                        // temporary save all the way (version 1.01 5/25/2018)
-//                                        int temp_n_chans = color;
-//                                        if(temp_n_chans==2)
-//                                            temp_n_chans++;
-
-//                                        appendSlice2Tiff3DFile(fhandle,slice_ind,(unsigned char *)p,sz[0],sz[1],temp_n_chans,8,sz[2]);
-//                                        blocksaved = true;
-
-//                                        //
-////                                        int numNonZeros = 0;
-////                                        int saveVoxelThresh = 1;
-
-////                                        #pragma omp parallel for reduction(+:numNonZeros)
-////                                        for(int x=0; x<szChunk; x++)
-////                                        {
-////                                            if(p[x]>0)
-////                                                numNonZeros++;
-////                                        }
-
-////                                        //cout<<"... raw_img_width "<<raw_img_width<<" offset "<<offset<<" height/pow(2,i) "<<height/pow(2,i)<<" width/pow(2,i) "<<width/pow(2,i)<<endl;
-
-////                                        if(numNonZeros>saveVoxelThresh)
-////                                        {
-////                                            int temp_n_chans = color;
-////                                            if(temp_n_chans==2)
-////                                                temp_n_chans++;
-
-////                                            //cout<<"... save slice_ind: "<<slice_ind<<endl;
-////                                            appendSlice2Tiff3DFile(fhandle,slice_ind,(unsigned char *)p,sz[0],sz[1],temp_n_chans,8,sz[2]);
-////                                            blocksaved = true;
-////                                        }
-//                                    }
-//                                    else
-//                                    {
-//                                        // 16-bit output
-
-//                                    }
-//                                }
-//                                else
-//                                {
-//                                    // other datatypes
-//                                }
-
-//                            }// genMetaInfoOnly
-//                        }
-
-//                        if(!genMetaInfoOnly && !genZeroDataOnly)
-//                        {
-//                            //
-//                            del1dp(p);
-
-//                            // close(fhandle) i.e. currently opened file
-//                            TIFFClose((TIFF *) fhandle);
-//                        }
-
-//                        //
-//                        start_width  += stacks_H[i][stack_row][stack_column][0];
-
-//                        //
-////                        if(addMeta)
-////                        {
-////                            block.nonZeroBlocks.push_back(blocksaved);
-////                            block.nBlocksPerDir = block.fileNames.size();
-////                            layer.blocks.push_back(block);
-////                            layer.n_scale = i;
-////                        }
-
-//                    }
-//                    start_height += stacks_V[i][stack_row][0][0];
-//                }
-//            }
-
-//            //
-////            if(!layer.blocks.empty())
-////            {
-////                layers.push_back(layer);
-////            }
-//        }
-
-//        //releasing allocated memory
-//        del1dp(ubuffer);
-
-//        //
-//        auto end = std::chrono::high_resolution_clock::now();
-//        cout<<"writing sub volume's chunk images takes "<<std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()<<" ms."<<endl;
-//    }
+    // reformat [zstart, zend] TIFF images
+
+    //
+    int zstep = MAX_IMAGES_STREAM;
+
+    //
+    for(int z=zstart; z<zend; z+=zstep)
+    {
+        // load a mount of images [zs, ze]
+        int zs = z;
+        int ze = (z+zstep <= zend) ? (z+zstep) : zend;
+        long zdepth = ze - zs + 1;
+
+        cout<<"reformat a sub volume ["<<zs<<", "<<ze<<"]"<<endl;
+
+        //
+        auto start_load = std::chrono::high_resolution_clock::now();
+
+        ubuffer = load(zs, ze);
+
+        auto end_load = std::chrono::high_resolution_clock::now();
+        cout<<"load a sub volume takes "<<std::chrono::duration_cast<std::chrono::milliseconds>(end_load - start_load).count()<<" ms."<<endl;
+
+        // bit-shift for 16-bit input data
+        if(datatype>1 && nbits)
+        {
+            long totalvoxels = (height * width * zdepth) * color;
+            if ( datatype == 2 )
+            {
+                #pragma omp parallel
+                {
+                    uint16 *ptr = (uint16 *) ubuffer;
+                    long i;
+                    #pragma omp for
+                    for(i=0; i<totalvoxels; i++ )
+                    {
+                        ptr[i] = ptr[i] >> nbits;
+                    }
+                }
+            }
+        }
+
+        //
+        auto start_reformat = std::chrono::high_resolution_clock::now();
+
+        //
+        map<int, Layer>::iterator res_iter = meta.layers.begin();
+        while(res_iter != meta.layers.end())
+        {
+            //
+            uint32 res_i = res_iter->first;
+
+            //
+            Layer layer = (res_iter++)->second;
+
+            // downsample
+            if(res_i>0)
+            {
+                halveSample(ubuffer,layer.dim_V,layer.dim_H, (int)(zdepth/(int)pow(2,res_i)),HALVE_BY_MAX,datatype);
+            }
+
+            //
+            long imgwidth = layer.dim_H;
+
+            //
+            map<string, YXFolder>::iterator iter = layer.yxfolders.begin();
+            while(iter != layer.yxfolders.end())
+            {
+                //
+                YXFolder yxfolder = (iter++)->second;
+
+                // locate the related cube: assuming [zs, ze] within a cube (does not cover many cubes)
+                int zcube = zs / meta.cubez;
+
+                int offset = zcube*meta.cubez;
+
+                auto it = yxfolder.cubes.find(offset);
+                if(it != yxfolder.cubes.end())
+                {
+                    long sx = yxfolder.width;
+                    long sy = yxfolder.height;
+
+                    long ystart = yxfolder.offset_V;
+                    long xstart = yxfolder.offset_H;
+
+                    Cube cube = it->second;
+
+                    //
+                    void *fhandle = 0;
+                    if(openTiff3DFile((char *)(cube.filePath.c_str()),(char *)("a"),fhandle,true))
+                    {
+                        cout<<"fail in openTiff3DFile "<<cube.filePath<<endl;
+                        return -1;
+                    }
+
+                    long szChunk = yxfolder.width*yxfolder.height;
+                    unsigned char *p = NULL;
+
+                    try
+                    {
+                        p = new unsigned char [szChunk];
+                        // memset(p, 0, szChunk);
+                    }
+                    catch(...)
+                    {
+                        cout<<"fail to alloc memory \n";
+                        return -1;
+                    }
+
+                    // copy a 2D section and append it to the corresponding chunk image
+                    for(long zbuf=0; zbuf<zdepth; zbuf++)
+                    {
+                        //
+                        long offsetInput = zbuf*layer.dim_H*layer.dim_V;
+
+                        //
+                        if(datatype == 2)
+                        {
+                            // 16-bit input
+                            uint16 *raw_ch16 = (uint16 *) ubuffer + offsetInput;
+
+                            if(outDatatype == 1)
+                            {
+                                // 8-bit output
+
+                                // copy
+                                #pragma omp parallel for collapse(2)
+                                for(long y=0; y<sy; y++)
+                                {
+                                    for(long x=0; x<sx; x++)
+                                    {
+                                        p[y*sx+x] = raw_ch16[(y+ystart)*imgwidth + (x+xstart)];
+                                    }
+                                }
+
+                                // save
+                                appendSlice2Tiff3DFile(fhandle,slice_ind,(unsigned char *)p,sx,sy,meta.color,8,cube.depth);
+                            }
+                            else
+                            {
+                                // 16-bit output
+                                uint16 *out_ch16 = (uint16 *) p;
+
+                                // copy
+                                #pragma omp parallel for collapse(2)
+                                for(long y=0; y<sy; y++)
+                                {
+                                    for(long x=0; x<sx; x++)
+                                    {
+                                        out_ch16[y*sx+x] = raw_ch16[(y+ystart)*imgwidth + (x+xstart)];
+                                    }
+                                }
+
+                                // save
+                                appendSlice2Tiff3DFile(fhandle,slice_ind,(unsigned char *)out_ch16,sx,sy,meta.color,16,cube.depth);
+                            }
+
+                        }
+                        else if(datatype == 1)
+                        {
+                            // 8-bit input
+                            uint8 *raw_ch8 = (uint8 *) ubuffer + offsetInput;
+
+                            if(outDatatype == 1)
+                            {
+                                // 8-bit output
+
+                                // copy
+                                #pragma omp parallel for collapse(2)
+                                for(long y=0; y<sy; y++)
+                                {
+                                    for(long x=0; x<sx; x++)
+                                    {
+                                        p[y*sx+x] = raw_ch8[(y+ystart)*imgwidth + (x+xstart)];
+                                    }
+                                }
+
+                                // save
+                                appendSlice2Tiff3DFile(fhandle,slice_ind,(unsigned char *)p,sx,sy,meta.color,8,cube.depth);
+                            }
+                            else
+                            {
+                                // 16-bit output
+                            }
+                        }
+                        else
+                        {
+                            // other datatypes
+                        }
+                    }
+
+                    //
+                    del1dp(p);
+
+                    // close(fhandle) i.e. currently opened file
+                    TIFFClose((TIFF *) fhandle);
+
+                } // cube
+            } // yxfolder
+        } // layer
+
+        // release allocated memory
+        del1dp(ubuffer);
+
+        //
+        auto end_reformat = std::chrono::high_resolution_clock::now();
+        cout<<"reformat and write chunk images takes "<<std::chrono::duration_cast<std::chrono::milliseconds>(start_reformat - end_reformat).count()<<" ms."<<endl;
+
+    } // z
 
     //
     return 0;

@@ -17,7 +17,7 @@ public:
     ~Cube();
 
 public:
-    int offset_D;
+    int offset_D; // z
 
     string fileName; // 000000_000000_000000.tif
     string filePath; // ourdir/RESXXxXXxXX/000000/000000_000000/000000_000000_000000.tif
@@ -32,8 +32,8 @@ public:
     ~YXFolder();
 
 public:
-    int offset_V;
-    int offset_H;
+    int offset_V; // y
+    int offset_H; // x
 
     uint16 lengthFileName; // 25 len("000000_000000_000000.tif") + 1
     uint16 lengthDirName; // 21 len("000000/000000_000000") + 1
@@ -106,7 +106,7 @@ public:
 
     set<string> input2DTIFFs;
     uint32 block_width, block_height, block_depth;
-    uint16 datatype;
+    uint16 datatype, outDatatype;
     uint32 color;
     uint8 *ubuffer;
     int nbits;
