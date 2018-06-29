@@ -36,7 +36,7 @@ int main (int argc, const char *argv[])
     string inputDir, outputDir;
     int mdata = 0;
     int sx=0, sy=0, sz=0;
-    int startz=0, endz=0;
+    int startz=-1, endz=-1;
 
     //
     try

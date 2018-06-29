@@ -252,7 +252,7 @@ SnapTree::SnapTree(string inputdir, string outputdir, int scales, int genMetaInf
     meta.cubez = block_depth;
 
     split = false;
-    if(startz>0 && endz>0)
+    if(startz>=0 && endz>0)
     {
         zstart = startz;
         zend = endz;
@@ -441,10 +441,15 @@ int SnapTree::init()
                 {
                     Cube cube = it->second;
 
-                    if(initTiff3DFile((char *)(cube.filePath.c_str()),yxfolder.width,yxfolder.height,cube.depth,meta.color,1) != 0)
+                    // cube has not been created on the storage
+                    struct stat info;
+                    if( stat( cube.filePath.c_str(), &info ) != 0 )
                     {
-                        cout<<"fail in initTiff3DFile\n";
-                        return -1;
+                        if(initTiff3DFile((char *)(cube.filePath.c_str()),yxfolder.width,yxfolder.height,cube.depth,meta.color,1) != 0)
+                        {
+                            cout<<"fail in initTiff3DFile\n";
+                            return -1;
+                        }
                     }
                 }
             } // cube
@@ -773,6 +778,10 @@ int SnapTree::index()
     // voxel size 1 micron by default
     // original offsets 0 mm by default
 
+    //
+    bool mDataDebug = false;
+
+    //
     DIR *outdir = opendir(dstdir.c_str());
     if(outdir == NULL)
     {
@@ -811,106 +820,125 @@ int SnapTree::index()
         //
         string filename = layer.layerName + "/mdata.bin";
 
-        // save
-        FILE *file;
+        struct stat info;
 
-        file = fopen(filename.c_str(), "w");
-
-        fwrite(&(meta.mdata_version), sizeof(float), 1, file);
-        fwrite(&(meta.reference_V), sizeof(axis), 1, file);
-        fwrite(&(meta.reference_H), sizeof(axis), 1, file);
-        fwrite(&(meta.reference_D), sizeof(axis), 1, file);
-        fwrite(&(layer.vs_x), sizeof(float), 1, file);
-        fwrite(&(layer.vs_y), sizeof(float), 1, file);
-        fwrite(&(layer.vs_z), sizeof(float), 1, file);
-        fwrite(&(layer.vs_x), sizeof(float), 1, file);
-        fwrite(&(layer.vs_y), sizeof(float), 1, file);
-        fwrite(&(layer.vs_z), sizeof(float), 1, file);
-        fwrite(&(meta.org_V), sizeof(float), 1, file);
-        fwrite(&(meta.org_H), sizeof(float), 1, file);
-        fwrite(&(meta.org_D), sizeof(float), 1, file);
-        fwrite(&(layer.dim_V), sizeof(uint32), 1, file);
-        fwrite(&(layer.dim_H), sizeof(uint32), 1, file);
-        fwrite(&(layer.dim_D), sizeof(uint32), 1, file);
-        fwrite(&(layer.rows), sizeof(uint16), 1, file);
-        fwrite(&(layer.cols), sizeof(uint16), 1, file);
-
-//        cout<<"filename "<<filename<<endl;
-
-//        cout<<"meta.mdata_version "<<meta.mdata_version<<endl;
-//        cout<<"meta.reference_V "<<meta.reference_V<<endl;
-//        cout<<"meta.reference_H "<<meta.reference_H<<endl;
-//        cout<<"meta.reference_D "<<meta.reference_D<<endl;
-//        cout<<"layer.vs_x "<<layer.vs_x<<endl;
-//        cout<<"layer.vs_y "<<layer.vs_y<<endl;
-//        cout<<"layer.vs_z "<<layer.vs_z<<endl;
-//        cout<<"layer.vs_x "<<layer.vs_x<<endl;
-//        cout<<"layer.vs_y "<<layer.vs_y<<endl;
-//        cout<<"layer.vs_z "<<layer.vs_z<<endl;
-//        cout<<"meta.org_V "<<meta.org_V<<endl;
-//        cout<<"meta.org_H "<<meta.org_H<<endl;
-//        cout<<"meta.org_D "<<meta.org_D<<endl;
-//        cout<<"layer.dim_V "<<layer.dim_V<<endl;
-//        cout<<"layer.dim_H "<<layer.dim_H<<endl;
-//        cout<<"layer.dim_D "<<layer.dim_D<<endl;
-//        cout<<"layer.rows "<<layer.rows<<endl;
-//        cout<<"layer.cols "<<layer.cols<<endl;
-
-        //
-        map<string, YXFolder>::iterator iter = layer.yxfolders.begin();
-        while(iter != layer.yxfolders.end())
+        // mdata.bin does not exist
+        if( stat( filename.c_str(), &info ) != 0 )
         {
-            //
-            YXFolder yxfolder = (iter++)->second;
+            // save mdata.bin
+            FILE *file;
+
+            file = fopen(filename.c_str(), "w");
+
+            fwrite(&(meta.mdata_version), sizeof(float), 1, file);
+            fwrite(&(meta.reference_V), sizeof(axis), 1, file);
+            fwrite(&(meta.reference_H), sizeof(axis), 1, file);
+            fwrite(&(meta.reference_D), sizeof(axis), 1, file);
+            fwrite(&(layer.vs_x), sizeof(float), 1, file);
+            fwrite(&(layer.vs_y), sizeof(float), 1, file);
+            fwrite(&(layer.vs_z), sizeof(float), 1, file);
+            fwrite(&(layer.vs_x), sizeof(float), 1, file);
+            fwrite(&(layer.vs_y), sizeof(float), 1, file);
+            fwrite(&(layer.vs_z), sizeof(float), 1, file);
+            fwrite(&(meta.org_V), sizeof(float), 1, file);
+            fwrite(&(meta.org_H), sizeof(float), 1, file);
+            fwrite(&(meta.org_D), sizeof(float), 1, file);
+            fwrite(&(layer.dim_V), sizeof(uint32), 1, file);
+            fwrite(&(layer.dim_H), sizeof(uint32), 1, file);
+            fwrite(&(layer.dim_D), sizeof(uint32), 1, file);
+            fwrite(&(layer.rows), sizeof(uint16), 1, file);
+            fwrite(&(layer.cols), sizeof(uint16), 1, file);
 
             //
-            fwrite(&(yxfolder.height), sizeof(uint32), 1, file);
-            fwrite(&(yxfolder.width), sizeof(uint32), 1, file);
-            fwrite(&(layer.dim_D), sizeof(uint32), 1, file); // depth of all blocks
-            fwrite(&layer.ncubes, sizeof(uint32), 1, file);
-            fwrite(&(meta.color), sizeof(uint32), 1, file);
-            fwrite(&(yxfolder.offset_V), sizeof(int), 1, file);
-            fwrite(&(yxfolder.offset_H), sizeof(int), 1, file);
-            fwrite(&(yxfolder.lengthDirName), sizeof(uint16), 1, file);
-            fwrite(const_cast<char *>(yxfolder.dirName.c_str()), yxfolder.lengthDirName, 1, file);
+            if(mDataDebug)
+            {
+                cout<<"filename "<<filename<<endl;
 
-//            cout<<"... "<<endl;
-//            cout<<"HEIGHT "<<yxfolder.height<<endl;
-//            cout<<"WIDTH "<<yxfolder.width<<endl;
-//            cout<<"DEPTH "<<layer.dim_D<<endl;
-//            cout<<"N_BLOCKS "<<layer.ncubes<<endl;
-//            cout<<"N_CHANS "<<meta.color<<endl;
-//            cout<<"ABS_V "<<yxfolder.offset_V<<endl;
-//            cout<<"ABS_H "<<yxfolder.offset_H<<endl;
-//            cout<<"str_size "<<yxfolder.lengthDirName<<endl;
-//            cout<<"DIR_NAME "<<yxfolder.dirName<<endl;
-
+                cout<<"meta.mdata_version "<<meta.mdata_version<<endl;
+                cout<<"meta.reference_V "<<meta.reference_V<<endl;
+                cout<<"meta.reference_H "<<meta.reference_H<<endl;
+                cout<<"meta.reference_D "<<meta.reference_D<<endl;
+                cout<<"layer.vs_x "<<layer.vs_x<<endl;
+                cout<<"layer.vs_y "<<layer.vs_y<<endl;
+                cout<<"layer.vs_z "<<layer.vs_z<<endl;
+                cout<<"layer.vs_x "<<layer.vs_x<<endl;
+                cout<<"layer.vs_y "<<layer.vs_y<<endl;
+                cout<<"layer.vs_z "<<layer.vs_z<<endl;
+                cout<<"meta.org_V "<<meta.org_V<<endl;
+                cout<<"meta.org_H "<<meta.org_H<<endl;
+                cout<<"meta.org_D "<<meta.org_D<<endl;
+                cout<<"layer.dim_V "<<layer.dim_V<<endl;
+                cout<<"layer.dim_H "<<layer.dim_H<<endl;
+                cout<<"layer.dim_D "<<layer.dim_D<<endl;
+                cout<<"layer.rows "<<layer.rows<<endl;
+                cout<<"layer.cols "<<layer.cols<<endl;
+            }
 
             //
-            map<int, Cube>::iterator it = yxfolder.cubes.begin();
-            while(it != yxfolder.cubes.end())
+            map<string, YXFolder>::iterator iter = layer.yxfolders.begin();
+            while(iter != layer.yxfolders.end())
             {
                 //
-                Cube cube = (it++)->second;
+                YXFolder yxfolder = (iter++)->second;
 
                 //
-                fwrite(&(yxfolder.lengthFileName), sizeof(uint16), 1, file);
-                fwrite(const_cast<char *>(cube.fileName.c_str()), yxfolder.lengthFileName, 1, file);
-                fwrite(&(cube.depth), sizeof(uint32), 1, file);
-                fwrite(&(cube.offset_D), sizeof(int), 1, file);
+                fwrite(&(yxfolder.height), sizeof(uint32), 1, file);
+                fwrite(&(yxfolder.width), sizeof(uint32), 1, file);
+                fwrite(&(layer.dim_D), sizeof(uint32), 1, file); // depth of all blocks
+                fwrite(&layer.ncubes, sizeof(uint32), 1, file);
+                fwrite(&(meta.color), sizeof(uint32), 1, file);
+                fwrite(&(yxfolder.offset_V), sizeof(int), 1, file);
+                fwrite(&(yxfolder.offset_H), sizeof(int), 1, file);
+                fwrite(&(yxfolder.lengthDirName), sizeof(uint16), 1, file);
+                fwrite(const_cast<char *>(yxfolder.dirName.c_str()), yxfolder.lengthDirName, 1, file);
 
-//                cout<<"... ..."<<endl;
-//                cout<<"str_size "<<yxfolder.lengthFileName<<endl;
-//                cout<<"FILENAMES["<<it->first<<"] "<<cube.fileName<<endl;
-//                cout<<"BLOCK_SIZE+i "<<cube.depth<<endl;
-//                cout<<"BLOCK_ABS_D+i "<<cube.offset_D<<endl;
+                //
+                if(mDataDebug)
+                {
+                    cout<<"... "<<endl;
+                    cout<<"HEIGHT "<<yxfolder.height<<endl;
+                    cout<<"WIDTH "<<yxfolder.width<<endl;
+                    cout<<"DEPTH "<<layer.dim_D<<endl;
+                    cout<<"N_BLOCKS "<<layer.ncubes<<endl;
+                    cout<<"N_CHANS "<<meta.color<<endl;
+                    cout<<"ABS_V "<<yxfolder.offset_V<<endl;
+                    cout<<"ABS_H "<<yxfolder.offset_H<<endl;
+                    cout<<"str_size "<<yxfolder.lengthDirName<<endl;
+                    cout<<"DIR_NAME "<<yxfolder.dirName<<endl;
+                }
 
+                //
+                map<int, Cube>::iterator it = yxfolder.cubes.begin();
+                while(it != yxfolder.cubes.end())
+                {
+                    //
+                    Cube cube = (it++)->second;
+
+                    //
+                    fwrite(&(yxfolder.lengthFileName), sizeof(uint16), 1, file);
+                    fwrite(const_cast<char *>(cube.fileName.c_str()), yxfolder.lengthFileName, 1, file);
+                    fwrite(&(cube.depth), sizeof(uint32), 1, file);
+                    fwrite(&(cube.offset_D), sizeof(int), 1, file);
+
+                    //
+                    if(mDataDebug)
+                    {
+                        cout<<"... ..."<<endl;
+                        cout<<"str_size "<<yxfolder.lengthFileName<<endl;
+                        cout<<"FILENAMES["<<it->first<<"] "<<cube.fileName<<endl;
+                        cout<<"BLOCK_SIZE+i "<<cube.depth<<endl;
+                        cout<<"BLOCK_ABS_D+i "<<cube.offset_D<<endl;
+                    }
+                }
+                fwrite(&(meta.bytesPerVoxel), sizeof(uint32), 1, file);
+
+                if(mDataDebug)
+                {
+                    cout<<"N_BYTESxCHAN "<<meta.bytesPerVoxel<<endl;
+                }
             }
-            fwrite(&(meta.bytesPerVoxel), sizeof(uint32), 1, file);
-
-            //cout<<"N_BYTESxCHAN "<<meta.bytesPerVoxel<<endl;
+            fclose(file);
         }
-        fclose(file);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
