@@ -220,10 +220,6 @@ SnapTree::SnapTree(string inputdir, string outputdir, int scales, int genMetaInf
 
     outDatatype = 1; // 8-bit
 
-    meta.cubex = block_width;
-    meta.cubey = block_height;
-    meta.cubez = block_depth; //
-
     nbits = 4; // bit shift for 16-bit
 
     ubuffer = NULL;
@@ -244,10 +240,19 @@ SnapTree::SnapTree(string inputdir, string outputdir, int scales, int genMetaInf
 
         color = 1;
         datatype = 2; // default
+
+        if(block_depth > depth)
+        {
+            block_depth = depth;
+        }
     }
 
+    meta.cubex = block_width;
+    meta.cubey = block_height;
+    meta.cubez = block_depth;
+
     split = false;
-    if(startz>=0 && endz>0)
+    if(startz>0 && endz>0)
     {
         zstart = startz;
         zend = endz;
@@ -339,13 +344,19 @@ int SnapTree::init()
         loadTiffMetaInfo(const_cast<char*>(firstfilepath.c_str()), width, height, depth, color, datatype);
         depth = input2DTIFFs.size();
 
+        if(block_depth > depth)
+        {
+            block_depth = depth;
+            meta.cubez = block_depth;
+        }
+
         cout<<"Image Info obtained from "<<firstfilepath<<endl;
     }
 
     if(split==false)
     {
         zstart = 0;
-        zend = depth;
+        zend = depth-1;
     }
 
     cout<<"Image Size "<<width<<"x"<<height<<"x"<<depth<<"x"<<color<<" with "<<datatype<<endl;
@@ -522,12 +533,12 @@ int SnapTree::reformat()
     int zstep = MAX_IMAGES_STREAM;
 
     //
-    for(int z=zstart; z<zend; z+=zstep)
+    for(int z=zstart; z<=zend; z+=zstep)
     {
         // load a mount of images [zs, ze]
         int zs = z;
         int ze = (z+zstep <= zend) ? (z+zstep) : zend;
-        long zdepth = ze - zs + 1;
+        long zdepth = ze - zs;
 
         cout<<"reformat a sub volume ["<<zs<<", "<<ze<<"]"<<endl;
 
@@ -562,20 +573,41 @@ int SnapTree::reformat()
         auto start_reformat = std::chrono::high_resolution_clock::now();
 
         //
+        int pre_V, pre_H, pre_D;
+        int cur_V, cur_H, cur_D;
+
+        //
         map<int, Layer>::iterator res_iter = meta.layers.begin();
         while(res_iter != meta.layers.end())
         {
             //
             uint32 res_i = res_iter->first;
 
+            if(res_i>0)
+            {
+                pre_V = cur_V;
+                pre_H = cur_H;
+                pre_D = cur_D;
+            }
+
             //
             Layer layer = (res_iter++)->second;
+
+            //
+            int zs_i = zs / int(pow(2, res_i));
+            int zdepth_i = zdepth / int(pow(2, res_i));
+
+            cur_V = layer.dim_V;
+            cur_H = layer.dim_H;
+            cur_D = zdepth_i;
 
             // downsample
             if(res_i>0)
             {
-                halveSample(ubuffer,layer.dim_V,layer.dim_H, (int)(zdepth/(int)pow(2,res_i)),HALVE_BY_MAX,datatype);
+                halveSample(ubuffer,pre_V,pre_H,pre_D,HALVE_BY_MAX,datatype);
             }
+
+            cout<<"processing scale "<<res_i<<" z "<<zs_i<<" + "<<zdepth_i<<endl;
 
             //
             long imgwidth = layer.dim_H;
@@ -588,7 +620,7 @@ int SnapTree::reformat()
                 YXFolder yxfolder = (iter++)->second;
 
                 // locate the related cube: assuming [zs, ze] within a cube (does not cover many cubes)
-                int zcube = zs / meta.cubez;
+                int zcube = zs_i / meta.cubez;
 
                 int offset = zcube*meta.cubez;
 
@@ -602,6 +634,8 @@ int SnapTree::reformat()
                     long xstart = yxfolder.offset_H;
 
                     Cube cube = it->second;
+
+                    //cout<<"save sub volume to "<<cube.filePath<<endl;
 
                     //
                     void *fhandle = 0;
@@ -626,7 +660,7 @@ int SnapTree::reformat()
                     }
 
                     // copy a 2D section and append it to the corresponding chunk image
-                    for(long zbuf=0; zbuf<zdepth; zbuf++)
+                    for(long zbuf=0; zbuf<zdepth_i; zbuf++)
                     {
                         //
                         long offsetInput = zbuf*layer.dim_H*layer.dim_V;
@@ -652,7 +686,7 @@ int SnapTree::reformat()
                                 }
 
                                 // save
-                                appendSlice2Tiff3DFile(fhandle,slice_ind,(unsigned char *)p,sx,sy,meta.color,8,cube.depth);
+                                appendSlice2Tiff3DFile(fhandle,cube.offset_D+zbuf,(unsigned char *)p,sx,sy,meta.color,8,cube.depth);
                             }
                             else
                             {
@@ -670,7 +704,7 @@ int SnapTree::reformat()
                                 }
 
                                 // save
-                                appendSlice2Tiff3DFile(fhandle,slice_ind,(unsigned char *)out_ch16,sx,sy,meta.color,16,cube.depth);
+                                appendSlice2Tiff3DFile(fhandle,cube.offset_D+zbuf,(unsigned char *)out_ch16,sx,sy,meta.color,16,cube.depth);
                             }
 
                         }
@@ -683,6 +717,8 @@ int SnapTree::reformat()
                             {
                                 // 8-bit output
 
+                                //cout<<"copying ... ("<<xstart<<", "<<ystart<<", "<<zbuf<<") -> "<<zs_i-cube.offset_D+zbuf<<" of "<<cube.depth<<endl;
+
                                 // copy
                                 #pragma omp parallel for collapse(2)
                                 for(long y=0; y<sy; y++)
@@ -694,7 +730,7 @@ int SnapTree::reformat()
                                 }
 
                                 // save
-                                appendSlice2Tiff3DFile(fhandle,slice_ind,(unsigned char *)p,sx,sy,meta.color,8,cube.depth);
+                                appendSlice2Tiff3DFile(fhandle,zs_i-cube.offset_D+zbuf,(unsigned char *)p,sx,sy,meta.color,8,cube.depth);
                             }
                             else
                             {
@@ -722,7 +758,7 @@ int SnapTree::reformat()
 
         //
         auto end_reformat = std::chrono::high_resolution_clock::now();
-        cout<<"reformat and write chunk images takes "<<std::chrono::duration_cast<std::chrono::milliseconds>(start_reformat - end_reformat).count()<<" ms."<<endl;
+        cout<<"reformat and write chunk images takes "<<std::chrono::duration_cast<std::chrono::milliseconds>(end_reformat - start_reformat).count()<<" ms."<<endl;
 
     } // z
 

@@ -76,9 +76,6 @@ float fastmax(const std::vector<float>& v);
 void halveSample(uint8* img, int height, int width, int depth, int method, int bytes_chan);
 
 //
-void halveSample2D(uint8* img, int height, int width, int depth, int method, int bytes_chan);
-
-//
 void copydata(unsigned char *psrc, uint32 stride_src, unsigned char *pdst, uint32 stride_dst, uint32 width, uint32 len);
 
 //

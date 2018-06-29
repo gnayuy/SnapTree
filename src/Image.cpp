@@ -92,6 +92,10 @@ float fastmax(const std::vector<float>& v)
 //
 void halveSample(uint8* img, int height, int width, int depth, int method, int bytes_chan)
 {
+    //
+    cout<<"downsampling ... "<<height<<" "<<width<<" "<<depth<<endl;
+
+    //
     float A,B,C,D,E,F,G,H;
 
     int w,h,d;
@@ -99,276 +103,276 @@ void halveSample(uint8* img, int height, int width, int depth, int method, int b
     h = height/2;
     d = depth/2;
 
-    //
-    if ( bytes_chan == 1 )
+    if(depth>1)
     {
-        if ( method == HALVE_BY_MEAN )
+        // 3D
+        //
+        if ( bytes_chan == 1 )
         {
-            for(long z=0; z<d; z++)
+            if ( method == HALVE_BY_MEAN )
             {
-                for(long i=0; i<h; i++)
+                for(long z=0; z<d; z++)
                 {
-                    for(long j=0; j<w; j++)
+                    for(long i=0; i<h; i++)
                     {
-                        //computing 8-neighbours
-                        A = img[2*z*width*height + 2*i*width + 2*j];
-                        B = img[2*z*width*height + 2*i*width + (2*j+1)];
-                        C = img[2*z*width*height + (2*i+1)*width + 2*j];
-                        D = img[2*z*width*height + (2*i+1)*width + (2*j+1)];
-                        E = img[(2*z+1)*width*height + 2*i*width + 2*j];
-                        F = img[(2*z+1)*width*height + 2*i*width + (2*j+1)];
-                        G = img[(2*z+1)*width*height + (2*i+1)*width + 2*j];
-                        H = img[(2*z+1)*width*height + (2*i+1)*width + (2*j+1)];
+                        for(long j=0; j<w; j++)
+                        {
+                            //computing 8-neighbours
+                            A = img[2*z*width*height + 2*i*width + 2*j];
+                            B = img[2*z*width*height + 2*i*width + (2*j+1)];
+                            C = img[2*z*width*height + (2*i+1)*width + 2*j];
+                            D = img[2*z*width*height + (2*i+1)*width + (2*j+1)];
+                            E = img[(2*z+1)*width*height + 2*i*width + 2*j];
+                            F = img[(2*z+1)*width*height + 2*i*width + (2*j+1)];
+                            G = img[(2*z+1)*width*height + (2*i+1)*width + 2*j];
+                            H = img[(2*z+1)*width*height + (2*i+1)*width + (2*j+1)];
 
-                        //computing mean
-                        img[z*w*h + i*w + j] = (uint8) round((A+B+C+D+E+F+G+H)/(float)8);
+                            //computing mean
+                            img[z*w*h + i*w + j] = (uint8) round((A+B+C+D+E+F+G+H)/(float)8);
+                        }
+                    }
+
+                }
+            }
+            else if ( method == HALVE_BY_MAX )
+            {
+                //#pragma omp parallel for collapse(3)
+                for(long z=0; z<d; z++)
+                {
+                    for(long i=0; i<h; i++)
+                    {
+                        for(long j=0; j<w; j++)
+                        {
+                            //computing max of 8-neighbours
+                            A = img[2*z*width*height + 2*i*width + 2*j];
+                            B = img[2*z*width*height + 2*i*width + (2*j+1)];
+                            if ( B > A ) A = B;
+                            B = img[2*z*width*height + (2*i+1)*width + 2*j];
+                            if ( B > A ) A = B;
+                            B = img[2*z*width*height + (2*i+1)*width + (2*j+1)];
+                            if ( B > A ) A = B;
+                            B = img[(2*z+1)*width*height + 2*i*width + 2*j];
+                            if ( B > A ) A = B;
+                            B = img[(2*z+1)*width*height + 2*i*width + (2*j+1)];
+                            if ( B > A ) A = B;
+                            B = img[(2*z+1)*width*height + (2*i+1)*width + 2*j];
+                            if ( B > A ) A = B;
+                            B = img[(2*z+1)*width*height + (2*i+1)*width + (2*j+1)];
+                            if ( B > A ) A = B;
+                            //computing max
+                            img[z*w*h + i*w + j] = (uint8) round(A);
+                        }
                     }
                 }
 
+
+                // fast max downsampling
+    //            for(long z=0; z<d; z++)
+    //            {
+    //                long ofz1 = 2*z*width*height;
+    //                long ofz2 = (2*z+1)*width*height;
+    //                for(long i=0; i<h; i++)
+    //                {
+    //                    long ofy1 = ofz1 + 2*i*width;
+    //                    long ofy2 = ofz1 + (2*i+1)*width;
+    //                    long ofy3 = ofz2 + 2*i*width;
+    //                    long ofy4 = ofz2 + (2*i+1)*width;
+
+    //                    vector<float> v;
+    //                    v.clear();
+    //                    for(long j=0; j<w; j++)
+    //                    {
+    //                        // computing max of 8-neighbours
+    //                        v.push_back(img[ofy1 + 2*j]);
+    //                        v.push_back(img[ofy1 + 2*j + 1]);
+    //                        v.push_back(img[ofy2 + 2*j]);
+    //                        v.push_back(img[ofy2 + 2*j + 1]);
+    //                        v.push_back(img[ofy3 + 2*j]);
+    //                        v.push_back(img[ofy3 + 2*j + 1]);
+    //                        v.push_back(img[ofy4 + 2*j]);
+    //                        v.push_back(img[ofy4 + 2*j + 1]);
+
+    //                        //computing max
+    //                        img[z*w*h + i*w + j] = (uint8) round(fastmax(v));
+    //                    }
+    //                }
+    //            }
+            }
+            else
+            {
+                cout<<"halveSample(...): invalid halving method\n";
+                return;
             }
         }
-        else if ( method == HALVE_BY_MAX )
+        else if ( bytes_chan == 2 )
         {
-            #pragma omp parallel for collapse(3)
-            for(long z=0; z<d; z++)
-            {
-                for(long i=0; i<h; i++)
+            uint16 *img16 = (uint16 *) img;
+
+            if ( method == HALVE_BY_MEAN ) {
+
+                for(long z=0; z<d; z++)
                 {
-                    for(long j=0; j<w; j++)
+                    for(long i=0; i<h; i++)
                     {
-                        //computing max of 8-neighbours
-                        A = img[2*z*width*height + 2*i*width + 2*j];
-                        B = img[2*z*width*height + 2*i*width + (2*j+1)];
-                        if ( B > A ) A = B;
-                        B = img[2*z*width*height + (2*i+1)*width + 2*j];
-                        if ( B > A ) A = B;
-                        B = img[2*z*width*height + (2*i+1)*width + (2*j+1)];
-                        if ( B > A ) A = B;
-                        B = img[(2*z+1)*width*height + 2*i*width + 2*j];
-                        if ( B > A ) A = B;
-                        B = img[(2*z+1)*width*height + 2*i*width + (2*j+1)];
-                        if ( B > A ) A = B;
-                        B = img[(2*z+1)*width*height + (2*i+1)*width + 2*j];
-                        if ( B > A ) A = B;
-                        B = img[(2*z+1)*width*height + (2*i+1)*width + (2*j+1)];
-                        if ( B > A ) A = B;
-                        //computing max
-                        img[z*w*h + i*w + j] = (uint8) round(A);
+                        for(long j=0; j<w; j++)
+                        {
+                            //computing 8-neighbours
+                            A = img16[2*z*width*height + 2*i*width + 2*j];
+                            B = img16[2*z*width*height + 2*i*width + (2*j+1)];
+                            C = img16[2*z*width*height + (2*i+1)*width + 2*j];
+                            D = img16[2*z*width*height + (2*i+1)*width + (2*j+1)];
+                            E = img16[(2*z+1)*width*height + 2*i*width + 2*j];
+                            F = img16[(2*z+1)*width*height + 2*i*width + (2*j+1)];
+                            G = img16[(2*z+1)*width*height + (2*i+1)*width + 2*j];
+                            H = img16[(2*z+1)*width*height + (2*i+1)*width + (2*j+1)];
+
+                            //computing mean
+                            img16[z*w*h + i*w + j] = (uint16) round((A+B+C+D+E+F+G+H)/(float)8);
+                        }
                     }
                 }
             }
+            else if ( method == HALVE_BY_MAX )
+            {
+                // #pragma omp parallel for collapse(3)
+                for(long z=0; z<d; z++)
+                {
+                    for(long i=0; i<h; i++)
+                    {
+                        for(long j=0; j<w; j++)
+                        {
+                            //computing max of 8-neighbours
+                            A = img16[2*z*width*height + 2*i*width + 2*j];
+                            B = img16[2*z*width*height + 2*i*width + (2*j+1)];
+                            if ( B > A ) A = B;
+                            B = img16[2*z*width*height + (2*i+1)*width + 2*j];
+                            if ( B > A ) A = B;
+                            B = img16[2*z*width*height + (2*i+1)*width + (2*j+1)];
+                            if ( B > A ) A = B;
+                            B = img16[(2*z+1)*width*height + 2*i*width + 2*j];
+                            if ( B > A ) A = B;
+                            B = img16[(2*z+1)*width*height + 2*i*width + (2*j+1)];
+                            if ( B > A ) A = B;
+                            B = img16[(2*z+1)*width*height + (2*i+1)*width + 2*j];
+                            if ( B > A ) A = B;
+                            B = img16[(2*z+1)*width*height + (2*i+1)*width + (2*j+1)];
+                            if ( B > A ) A = B;
 
+                            //computing max
+                            img16[z*w*h + i*w + j] = (uint16) round(A);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                cout<<"halveSample(...): invalid halving method\n";
+                return;
+            }
 
-            // fast max downsampling
-//            for(long z=0; z<d; z++)
-//            {
-//                long ofz1 = 2*z*width*height;
-//                long ofz2 = (2*z+1)*width*height;
-//                for(long i=0; i<h; i++)
-//                {
-//                    long ofy1 = ofz1 + 2*i*width;
-//                    long ofy2 = ofz1 + (2*i+1)*width;
-//                    long ofy3 = ofz2 + 2*i*width;
-//                    long ofy4 = ofz2 + (2*i+1)*width;
-
-//                    vector<float> v;
-//                    v.clear();
-//                    for(long j=0; j<w; j++)
-//                    {
-//                        // computing max of 8-neighbours
-//                        v.push_back(img[ofy1 + 2*j]);
-//                        v.push_back(img[ofy1 + 2*j + 1]);
-//                        v.push_back(img[ofy2 + 2*j]);
-//                        v.push_back(img[ofy2 + 2*j + 1]);
-//                        v.push_back(img[ofy3 + 2*j]);
-//                        v.push_back(img[ofy3 + 2*j + 1]);
-//                        v.push_back(img[ofy4 + 2*j]);
-//                        v.push_back(img[ofy4 + 2*j + 1]);
-
-//                        //computing max
-//                        img[z*w*h + i*w + j] = (uint8) round(fastmax(v));
-//                    }
-//                }
-//            }
         }
         else
         {
-            cout<<"halveSample(...): invalid halving method\n";
+            cout<<"halveSample(...): invalid number of bytes per channel\n";
             return;
         }
-    }
-    else if ( bytes_chan == 2 )
-    {
-        uint16 *img16 = (uint16 *) img;
-
-        if ( method == HALVE_BY_MEAN ) {
-
-            for(long z=0; z<d; z++)
-            {
-                for(long i=0; i<h; i++)
-                {
-                    for(long j=0; j<w; j++)
-                    {
-                        //computing 8-neighbours
-                        A = img16[2*z*width*height + 2*i*width + 2*j];
-                        B = img16[2*z*width*height + 2*i*width + (2*j+1)];
-                        C = img16[2*z*width*height + (2*i+1)*width + 2*j];
-                        D = img16[2*z*width*height + (2*i+1)*width + (2*j+1)];
-                        E = img16[(2*z+1)*width*height + 2*i*width + 2*j];
-                        F = img16[(2*z+1)*width*height + 2*i*width + (2*j+1)];
-                        G = img16[(2*z+1)*width*height + (2*i+1)*width + 2*j];
-                        H = img16[(2*z+1)*width*height + (2*i+1)*width + (2*j+1)];
-
-                        //computing mean
-                        img16[z*w*h + i*w + j] = (uint16) round((A+B+C+D+E+F+G+H)/(float)8);
-                    }
-                }
-            }
-        }
-        else if ( method == HALVE_BY_MAX )
-        {
-            #pragma omp parallel for collapse(3)
-            for(long z=0; z<d; z++)
-            {
-                for(long i=0; i<h; i++)
-                {
-                    for(long j=0; j<w; j++)
-                    {
-                        //computing max of 8-neighbours
-                        A = img16[2*z*width*height + 2*i*width + 2*j];
-                        B = img16[2*z*width*height + 2*i*width + (2*j+1)];
-                        if ( B > A ) A = B;
-                        B = img16[2*z*width*height + (2*i+1)*width + 2*j];
-                        if ( B > A ) A = B;
-                        B = img16[2*z*width*height + (2*i+1)*width + (2*j+1)];
-                        if ( B > A ) A = B;
-                        B = img16[(2*z+1)*width*height + 2*i*width + 2*j];
-                        if ( B > A ) A = B;
-                        B = img16[(2*z+1)*width*height + 2*i*width + (2*j+1)];
-                        if ( B > A ) A = B;
-                        B = img16[(2*z+1)*width*height + (2*i+1)*width + 2*j];
-                        if ( B > A ) A = B;
-                        B = img16[(2*z+1)*width*height + (2*i+1)*width + (2*j+1)];
-                        if ( B > A ) A = B;
-
-                        //computing max
-                        img16[z*w*h + i*w + j] = (uint16) round(A);
-                    }
-                }
-            }
-        }
-        else
-        {
-            cout<<"halveSample(...): invalid halving method\n";
-            return;
-        }
-
     }
     else
     {
-        cout<<"halveSample(...): invalid number of bytes per channel\n";
-        return;
-    }
-}
-
-//
-void halveSample2D(uint8* img, int height, int width, int depth, int method, int bytes_chan)
-{
-    float A,B,C,D;
-
-    //
-    if ( bytes_chan == 1 )
-    {
-        if ( method == HALVE_BY_MEAN )
+        // 2D
+        //
+        if ( bytes_chan == 1 )
         {
-            for(long z=0; z<depth; z++)
+            if ( method == HALVE_BY_MEAN )
             {
-                for(long i=0; i<height/2; i++)
+                for(long i=0; i<h; i++)
                 {
-                    for(long j=0; j<width/2; j++)
+                    for(long j=0; j<w; j++)
                     {
-                        // computing 8-neighbours
-                        A = img[z*width*height + 2*i*width + 2*j];
-                        B = img[z*width*height + 2*i*width + (2*j+1)];
-                        C = img[z*width*height + (2*i+1)*width + 2*j];
-                        D = img[z*width*height + (2*i+1)*width + (2*j+1)];
+                        // computing 4-neighbours
+                        A = img[2*i*width + 2*j];
+                        B = img[2*i*width + (2*j+1)];
+                        C = img[(2*i+1)*width + 2*j];
+                        D = img[(2*i+1)*width + (2*j+1)];
 
                         //computing mean
-                        img[z*(width/2)*(height/2) + i*(width/2) + j] = (uint8) round((A+B+C+D)/(float)4);
+                        img[i*w + j] = (uint8) round((A+B+C+D)/(float)4);
+                    }
+                }
+            }
+            else if ( method == HALVE_BY_MAX )
+            {
+                for(long i=0; i<h; i++)
+                {
+                    for(long j=0; j<w; j++)
+                    {
+                        //computing max of 4-neighbours
+                        A = img[2*i*width + 2*j];
+                        B = img[2*i*width + (2*j+1)];
+                        if ( B > A ) A = B;
+                        B = img[(2*i+1)*width + 2*j];
+                        if ( B > A ) A = B;
+                        B = img[(2*i+1)*width + (2*j+1)];
+                        if ( B > A ) A = B;
+
+                        //computing mean
+                        img[i*w + j] = (uint8) round(A);
                     }
                 }
             }
         }
-        else if ( method == HALVE_BY_MAX )
+        else if ( bytes_chan == 2 )
         {
-            for(long z=0; z<depth; z++)
+            uint16 *img16 = (uint16 *) img;
+
+            if ( method == HALVE_BY_MEAN )
             {
-                for(long i=0; i<height/2; i++)
+                for(long i=0; i<h; i++)
                 {
-                    for(long j=0; j<width/2; j++)
+                    for(long j=0; j<w; j++)
+                    {
+                        //computing 4-neighbours
+                        A = img16[2*i*width + 2*j];
+                        B = img16[2*i*width + (2*j+1)];
+                        C = img16[(2*i+1)*width + 2*j];
+                        D = img16[(2*i+1)*width + (2*j+1)];
+
+                        //computing mean
+                        img16[i*w + j] = (uint16) round((A+B+C+D)/(float)4);
+                    }
+                }
+            }
+            else if ( method == HALVE_BY_MAX )
+            {
+                for(long i=0; i<h; i++)
+                {
+                    for(long j=0; j<w; j++)
                     {
                         //computing max of 8-neighbours
-                        A = img[z*width*height + 2*i*width + 2*j];
-                        B = img[z*width*height + 2*i*width + (2*j+1)];
+                        A = img16[2*i*width + 2*j];
+                        B = img16[2*i*width + (2*j+1)];
                         if ( B > A ) A = B;
-                        B = img[z*width*height + (2*i+1)*width + 2*j];
+                        B = img16[(2*i+1)*width + 2*j];
                         if ( B > A ) A = B;
-                        B = img[z*width*height + (2*i+1)*width + (2*j+1)];
+                        B = img16[(2*i+1)*width + (2*j+1)];
                         if ( B > A ) A = B;
 
                         //computing mean
-                        img[z*(width/2)*(height/2) + i*(width/2) + j] = (uint8) round(A);
+                        img16[i*w + j] = (uint16) round(A);
                     }
                 }
             }
-        }
-    }
-    else if ( bytes_chan == 2 )
-    {
-        uint16 *img16 = (uint16 *) img;
-
-        if ( method == HALVE_BY_MEAN )
-        {
-            for(long z=0; z<depth; z++)
+            else
             {
-                for(long i=0; i<height/2; i++)
-                {
-                    for(long j=0; j<width/2; j++)
-                    {
-                        //computing 8-neighbours
-                        A = img16[z*width*height + 2*i*width + 2*j];
-                        B = img16[z*width*height + 2*i*width + (2*j+1)];
-                        C = img16[z*width*height + (2*i+1)*width + 2*j];
-                        D = img16[z*width*height + (2*i+1)*width + (2*j+1)];
-
-                        //computing mean
-                        img16[z*(width/2)*(height/2) + i*(width/2) + j] = (uint16) round((A+B+C+D)/(float)4);
-                    }
-                }
+                cout<<"halveSample(...): invalid halving method\n";
+                return;
             }
+
         }
-        else if ( method == HALVE_BY_MAX )
+        else
         {
-            for(long z=0; z<depth; z++)
-            {
-                for(long i=0; i<height/2; i++)
-                {
-                    for(long j=0; j<width/2; j++)
-                    {
-                        //computing max of 8-neighbours
-                        A = img16[z*width*height + 2*i*width + 2*j];
-                        B = img16[z*width*height + 2*i*width + (2*j+1)];
-                        if ( B > A ) A = B;
-                        B = img16[z*width*height + (2*i+1)*width + 2*j];
-                        if ( B > A ) A = B;
-                        B = img16[z*width*height + (2*i+1)*width + (2*j+1)];
-                        if ( B > A ) A = B;
-
-                        //computing mean
-                        img16[z*(width/2)*(height/2) + i*(width/2) + j] = (uint16) round(A);
-                    }
-                }
-            }
+            cout<<"halveSample(...): invalid number of bytes per channel\n";
+            return;
         }
     }
 }
