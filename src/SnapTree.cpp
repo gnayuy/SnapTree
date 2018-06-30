@@ -356,7 +356,7 @@ int SnapTree::init()
     if(split==false)
     {
         zstart = 0;
-        zend = depth-1;
+        zend = depth;
     }
 
     cout<<"Image Size "<<width<<"x"<<height<<"x"<<depth<<"x"<<color<<" with "<<datatype<<endl;
