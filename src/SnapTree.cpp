@@ -800,7 +800,7 @@ int SnapTree::index()
     auto start = std::chrono::high_resolution_clock::now();
 
     //
-    meta.init(dstdir, width, height, depth, color, datatype, resolutions);
+    meta.init(dstdir, width, height, depth, color, outDatatype, resolutions);
 
     //
     map<int, Layer>::iterator res_iter = meta.layers.begin();
