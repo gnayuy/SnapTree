@@ -128,6 +128,100 @@ int maxdownsamplep(InputType *pimg1, InputType *pimg2, OutputType *p, long sx, l
     return 0;
 }
 
+//
+/// testing openmp sections
+//
+// atom function
+template <class InputType, class OutputType>
+void maxdownsample_func(InputType *pimg1, InputType *pimg2, OutputType *poutput, long sx, long ssx, long endx, long endy)
+{
+    for(long y=0; y<endy; y++)
+    {
+        long ofy = y*ssx;
+
+        long ofy1 = 2*y*sx;
+        long ofy2 = (2*y+1)*sx;
+
+        for(long x=0; x<endx; x++)
+        {
+            //
+            int A = pimg1[ofy1 + 2*x];
+            int B = pimg1[ofy1 + 2*x+1];
+            if ( B > A ) A = B;
+
+            B = pimg1[ofy2 + 2*x];
+            if ( B > A ) A = B;
+
+            B = pimg1[ofy2 + 2*x+1];
+            if ( B > A ) A = B;
+
+            B = pimg2[ofy1 + 2*x];
+            if ( B > A ) A = B;
+
+            B = pimg2[ofy1 + 2*x+1];
+            if ( B > A ) A = B;
+
+            B = pimg2[ofy2 + 2*x];
+            if ( B > A ) A = B;
+
+            B = pimg2[ofy2 + 2*x+1];
+            if ( B > A ) A = B;
+
+            // computing max
+            poutput[ofy + x] = (OutputType)(A);
+        }
+    }
+}
+
+// parallel func
+template <class InputType, class OutputType>
+int maxdownsample_parallel(InputType *pimg1, InputType *pimg2, OutputType *poutput, long sx, long sy)
+{
+    long ssx = sx/2;
+    long ssy = sy/2;
+
+    long endx = ssx/8;
+    long endy = ssy/8;
+
+    #pragma omp parallel sections
+    {
+        // thread 1
+        #pragma omp section
+        maxdownsample_func<InputType,OutputType>(pimg1, pimg2, poutput, sx, ssx, endx*2, endy*2);
+
+        // thread 2
+        #pragma omp section
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*2*sx+endx*2, pimg2+endy*2*sx+endx*2, poutput+endy*ssx+endx, sx, ssx, endx*4, endy*4);
+
+        // thread 3
+        #pragma omp section
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*4*sx+endx*4, pimg2+endy*4*sx+endx*4, poutput+endy*2*ssx+endx*2, sx, ssx, endx*6, endy*6);
+
+        // thread 4
+        #pragma omp section
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*6*sx+endx*6, pimg2+endy*6*sx+endx*6, poutput+endy*3*ssx+endx*3, sx, ssx, endx*8, endy*8);
+
+        // thread 5
+        #pragma omp section
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*8*sx+endx*8, pimg2+endy*8*sx+endx*8, poutput+endy*4*ssx+endx*4, sx, ssx, endx*10, endy*10);
+
+        // thread 6
+        #pragma omp section
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*10*sx+endx*10, pimg2+endy*10*sx+endx*10, poutput+endy*5*ssx+endx*5, sx, ssx, endx*12, endy*12);
+
+        // thread 7
+        #pragma omp section
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*12*sx+endx*12, pimg2+endy*12*sx+endx*12, poutput+endy*6*ssx+endx*6, sx, ssx, endx*14, endy*14);
+
+        // thread 8
+        #pragma omp section
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*14*sx+endx*14, pimg2+endy*14*sx+endx*14, poutput+endy*7*ssx+endx*7, sx, ssx, endx*16, endy*16);
+    }
+
+    //
+    return 0;
+}
+
 // sequential max downsampling
 template <class InputType, class OutputType>
 int maxdownsamples(InputType *pimg1, InputType *pimg2, OutputType *poutput, long sx, long sy)
@@ -214,11 +308,13 @@ char *tiffread(char* filename, unsigned char *&p, uint32 &sz0, uint32  &sz1, uin
         }
     }
     datatype /= 8;
+
+    long imgsz = (long)sz0*(long)sz1*(long)sz2*(long)datatype;
     
     //
     try
     {
-        p = new unsigned char [sz0*sz1*sz2*datatype];
+        p = new unsigned char [imgsz];
     }
     catch(...)
     {
