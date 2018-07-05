@@ -3,7 +3,14 @@
 #include "Image.h"
 #include "signal.hpp"
 
+// define how many 2D images to be loaded each time
 #define MAX_IMAGES_STREAM 16
+
+// 16-bit data bits shift method:
+// 0: >> 4
+// 1: >> 2
+//
+#define METHOD_BITS_SHIFT 0
 
 // meta
 // Folder: Y/Y_X

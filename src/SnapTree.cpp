@@ -213,6 +213,11 @@ int Tree::init(string outdir, long dimx, long dimy, long dimz, long dimc, int by
 //
 SnapTree::SnapTree(string inputdir, string outputdir, int scales, int genMetaInfo, int sx, int sy, int sz, int startz, int endz)
 {
+    // create a resume log file
+    // check resume log file "resumeSnapTree_startz_endz.log"
+    // if resumeSnapTree_startz_endz.log exists, change the parameters accordingly
+
+
     // default parameters settings
     block_width = 256;
     block_height = 256;

@@ -30,7 +30,6 @@ using namespace std;
 //
 #define HALVE_BY_MEAN 1
 #define HALVE_BY_MAX  2
-#define TMITREE_MAX_HEIGHT 10
 
 // Baseline TIFF Tag Compression
 //COMPRESSION_NONE = 1;
@@ -73,7 +72,7 @@ char *copyFile(const char *srcFile, const char *dstFile);
 float fastmax(const std::vector<float>& v);
 
 //
-void halveSample(uint8* img, int height, int width, int depth, int method, int bytes_chan);
+void halveSample(uint8* img, int height, int width, int depth, int method, int bytes_chan, int threads=8);
 
 //
 void copydata(unsigned char *psrc, uint32 stride_src, unsigned char *pdst, uint32 stride_dst, uint32 width, uint32 len);

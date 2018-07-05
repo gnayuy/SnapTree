@@ -90,19 +90,30 @@ float fastmax(const std::vector<float>& v)
 }
 
 //
-void halveSample(uint8* img, int height, int width, int depth, int method, int bytes_chan)
+void halveSample(uint8* img, int height, int width, int depth, int method, int bytes_chan, int threads)
 {
-    //
-    cout<<"downsampling ... "<<height<<" "<<width<<" "<<depth<<endl;
-
     //
     float A,B,C,D,E,F,G,H;
 
-    int w,h,d;
+    long w,h,d;
     w = width/2;
     h = height/2;
     d = depth/2;
 
+    //
+    long zchunk;
+
+    if(d>threads)
+    {
+        zchunk = d/(long)threads;
+    }
+    else
+    {
+        threads = d;
+        zchunk = 1;
+    }
+
+    //
     if(depth>1)
     {
         // 3D
@@ -131,12 +142,12 @@ void halveSample(uint8* img, int height, int width, int depth, int method, int b
                             img[z*w*h + i*w + j] = (uint8) round((A+B+C+D+E+F+G+H)/(float)8);
                         }
                     }
-
                 }
             }
             else if ( method == HALVE_BY_MAX )
             {
                 //#pragma omp parallel for collapse(3)
+                #pragma omp parallel for schedule(dynamic, zchunk) num_threads(threads)
                 for(long z=0; z<d; z++)
                 {
                     for(long i=0; i<h; i++)
@@ -235,6 +246,7 @@ void halveSample(uint8* img, int height, int width, int depth, int method, int b
             else if ( method == HALVE_BY_MAX )
             {
                 // #pragma omp parallel for collapse(3)
+                #pragma omp parallel for schedule(dynamic, zchunk) num_threads(threads)
                 for(long z=0; z<d; z++)
                 {
                     for(long i=0; i<h; i++)
