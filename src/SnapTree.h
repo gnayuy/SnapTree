@@ -104,6 +104,7 @@ public:
     uint8* load(long zs, long ze);
     int reformat();
     int index();
+    void resume(int startz, int endz);
 
 public:
     string srcdir, dstdir;
@@ -117,6 +118,7 @@ public:
     uint32 color;
     uint8 *ubuffer;
     int nbits;
+    string resumeConfigFile;
 
     bool inputImageDimensions;
     bool split;

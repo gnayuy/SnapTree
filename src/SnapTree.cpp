@@ -213,12 +213,25 @@ int Tree::init(string outdir, long dimx, long dimy, long dimz, long dimc, int by
 //
 SnapTree::SnapTree(string inputdir, string outputdir, int scales, int genMetaInfo, int sx, int sy, int sz, int startz, int endz)
 {
-    // create a resume log file
-    // check resume log file "resumeSnapTree_startz_endz.log"
-    // if resumeSnapTree_startz_endz.log exists, change the parameters accordingly
-
-
     // default parameters settings
+    split = false;
+    if(startz>=0 && endz>0)
+    {
+        zstart = startz;
+        zend = endz;
+
+        split = true;
+    }
+    else
+    {
+        zstart = 0;
+        zend = depth;
+    }
+
+    //
+    resume(zstart, zend);
+
+    //
     block_width = 256;
     block_height = 256;
     block_depth = 32; //
@@ -255,15 +268,6 @@ SnapTree::SnapTree(string inputdir, string outputdir, int scales, int genMetaInf
     meta.cubex = block_width;
     meta.cubey = block_height;
     meta.cubez = block_depth;
-
-    split = false;
-    if(startz>=0 && endz>0)
-    {
-        zstart = startz;
-        zend = endz;
-
-        split = true;
-    }
 
     if(resolutions<1)
     {
@@ -356,12 +360,6 @@ int SnapTree::init()
         }
 
         cout<<"Image Info obtained from "<<firstfilepath<<endl;
-    }
-
-    if(split==false)
-    {
-        zstart = 0;
-        zend = depth;
     }
 
     cout<<"Image Size "<<width<<"x"<<height<<"x"<<depth<<"x"<<color<<" with "<<datatype<<endl;
@@ -573,7 +571,13 @@ int SnapTree::reformat()
                     #pragma omp for
                     for(i=0; i<totalvoxels; i++ )
                     {
-                        ptr[i] = ptr[i] >> nbits;
+                        // ptr[i] = ptr[i] >> nbits;
+
+                        //
+                        ptr[i] = ptr[i] >> 2;
+
+                        if(ptr[i]>255)
+                            ptr[i] = 255;
                     }
                 }
             }
@@ -951,5 +955,13 @@ int SnapTree::index()
 
     //
     return 0;
+}
+
+void SnapTree::resume(int startz, int endz)
+{
+    // check resume log file "SnapTreeResumeConfig_startz_endz.log"
+    // if SnapTreeResumeConfig_startz_endz.log exists, change the parameters "zstart" accordingly
+
+
 }
 
