@@ -180,42 +180,42 @@ int maxdownsample_parallel(InputType *pimg1, InputType *pimg2, OutputType *poutp
     long ssx = sx/2;
     long ssy = sy/2;
 
-    long endx = ssx/8;
+    long endx = ssx;
     long endy = ssy/8;
 
     #pragma omp parallel sections
     {
         // thread 1
         #pragma omp section
-        maxdownsample_func<InputType,OutputType>(pimg1, pimg2, poutput, sx, ssx, endx*2, endy*2);
+        maxdownsample_func<InputType,OutputType>(pimg1, pimg2, poutput, sx, ssx, endx, endy);
 
         // thread 2
         #pragma omp section
-        maxdownsample_func<InputType,OutputType>(pimg1+endy*2*sx+endx*2, pimg2+endy*2*sx+endx*2, poutput+endy*ssx+endx, sx, ssx, endx*4, endy*4);
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*2*sx, pimg2+endy*2*sx, poutput+endy*ssx, sx, ssx, endx, endy);
 
         // thread 3
         #pragma omp section
-        maxdownsample_func<InputType,OutputType>(pimg1+endy*4*sx+endx*4, pimg2+endy*4*sx+endx*4, poutput+endy*2*ssx+endx*2, sx, ssx, endx*6, endy*6);
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*4*sx, pimg2+endy*4*sx, poutput+endy*2*ssx, sx, ssx, endx, endy);
 
         // thread 4
         #pragma omp section
-        maxdownsample_func<InputType,OutputType>(pimg1+endy*6*sx+endx*6, pimg2+endy*6*sx+endx*6, poutput+endy*3*ssx+endx*3, sx, ssx, endx*8, endy*8);
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*6*sx, pimg2+endy*6*sx, poutput+endy*3*ssx, sx, ssx, endx, endy);
 
         // thread 5
         #pragma omp section
-        maxdownsample_func<InputType,OutputType>(pimg1+endy*8*sx+endx*8, pimg2+endy*8*sx+endx*8, poutput+endy*4*ssx+endx*4, sx, ssx, endx*10, endy*10);
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*8*sx, pimg2+endy*8*sx, poutput+endy*4*ssx, sx, ssx, endx, endy);
 
         // thread 6
         #pragma omp section
-        maxdownsample_func<InputType,OutputType>(pimg1+endy*10*sx+endx*10, pimg2+endy*10*sx+endx*10, poutput+endy*5*ssx+endx*5, sx, ssx, endx*12, endy*12);
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*10*sx, pimg2+endy*10*sx, poutput+endy*5*ssx, sx, ssx, endx, endy);
 
         // thread 7
         #pragma omp section
-        maxdownsample_func<InputType,OutputType>(pimg1+endy*12*sx+endx*12, pimg2+endy*12*sx+endx*12, poutput+endy*6*ssx+endx*6, sx, ssx, endx*14, endy*14);
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*12*sx, pimg2+endy*12*sx, poutput+endy*6*ssx, sx, ssx, endx, endy);
 
         // thread 8
         #pragma omp section
-        maxdownsample_func<InputType,OutputType>(pimg1+endy*14*sx+endx*14, pimg2+endy*14*sx+endx*14, poutput+endy*7*ssx+endx*7, sx, ssx, endx*16, endy*16);
+        maxdownsample_func<InputType,OutputType>(pimg1+endy*14*sx, pimg2+endy*14*sx, poutput+endy*7*ssx, sx, ssx, endx, endy);
     }
 
     //
@@ -350,9 +350,9 @@ char *tiffread(char* filename, unsigned char *&p, uint32 &sz0, uint32  &sz1, uin
     }
     
     unsigned char *buf = p;
-    
+
     do{
-        
+
         for (int i=0; i < StripsPerImage-1; i++)
         {
             if (comp==1)
@@ -366,7 +366,7 @@ char *tiffread(char* filename, unsigned char *&p, uint32 &sz0, uint32  &sz1, uin
                 buf = buf + rps * sz0 * datatype;
             }
         }
-        
+
         if (comp==1)
         {
             TIFFReadRawStrip(input, StripsPerImage-1, buf, LastStripSize * sz0 * datatype);
@@ -520,18 +520,28 @@ int main(int argc, char *argv[])
         unsigned short *p2 = (unsigned short *) (pImg2);
         
         // bit-shift
-#pragma omp parallel
-        imgsz = sx1*sy1;
-        long i;
-#pragma omp for
-        for (i=0; i<imgsz; i++)
+        int nbits = 2;
+
+        #pragma omp parallel
         {
-            p1[i] = p1[i] >> 4;
-            p2[i] = p2[i] >> 4;
+            imgsz = sx1*sy1;
+            long i;
+            #pragma omp for
+            for (i=0; i<imgsz; i++)
+            {
+                p1[i] = p1[i] >> nbits;
+                p2[i] = p2[i] >> nbits;
+
+                if(p1[i]>255)
+                    p1[i] = 255;
+
+                if(p2[i]>255)
+                    p2[i] = 255;
+            }
         }
         
         // downsample
-        maxdownsamplep<unsigned short, unsigned char>(p1, p2, p, sx1, sy1);
+        maxdownsample_parallel<unsigned short, unsigned char>(p1, p2, p, sx1, sy1);
     }
     else if(datatype1 == 1)
     {
