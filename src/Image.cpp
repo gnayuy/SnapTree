@@ -278,208 +278,208 @@ void halveSample(uint8* img, int height, int width, int depth, int method, int b
 //                    //maxDownsampling<unsigned short>(img16,width, height, z);
 //                }
 
-//                maxDownsampling<unsigned short>(img16, width, height, 0, d);
+                maxDownsampling<unsigned short>(img16, width, height, 0, d);
 
 
-                switch(threads)
-                {
-                case 1:
+//                switch(threads)
+//                {
+//                case 1:
 
-                    maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
-                    break;
+//                    maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+//                    break;
 
-                case 2:
+//                case 2:
 
-                    #pragma omp parallel sections
-                    {
-                        // thread 1
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+//                    #pragma omp parallel sections
+//                    {
+//                        // thread 1
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
 
-                        // thread 2
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
-                    }
+//                        // thread 2
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
+//                    }
 
-                    break;
+//                    break;
 
-                case 3:
+//                case 3:
 
-                    #pragma omp parallel sections
-                    {
-                        // thread 1
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+//                    #pragma omp parallel sections
+//                    {
+//                        // thread 1
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
 
-                        // thread 2
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
+//                        // thread 2
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
 
-                        // thread 3
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
-                    }
+//                        // thread 3
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
+//                    }
 
-                    break;
+//                    break;
 
-                case 4:
+//                case 4:
 
-                    #pragma omp parallel sections
-                    {
-                        // thread 1
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+//                    #pragma omp parallel sections
+//                    {
+//                        // thread 1
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
 
-                        // thread 2
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
+//                        // thread 2
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
 
-                        // thread 3
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
+//                        // thread 3
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
 
-                        // thread 4
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
-                    }
+//                        // thread 4
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
+//                    }
 
-                    break;
+//                    break;
 
-                case 5:
+//                case 5:
 
-                    #pragma omp parallel sections
-                    {
-                        // thread 1
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+//                    #pragma omp parallel sections
+//                    {
+//                        // thread 1
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
 
-                        // thread 2
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
+//                        // thread 2
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
 
-                        // thread 3
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
+//                        // thread 3
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
 
-                        // thread 4
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
+//                        // thread 4
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
 
-                        // thread 5
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 4*zchunk, 5*zchunk);
-                    }
+//                        // thread 5
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 4*zchunk, 5*zchunk);
+//                    }
 
-                    break;
+//                    break;
 
-                case 6:
+//                case 6:
 
-                    #pragma omp parallel sections
-                    {
-                        // thread 1
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+//                    #pragma omp parallel sections
+//                    {
+//                        // thread 1
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
 
-                        // thread 2
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
+//                        // thread 2
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
 
-                        // thread 3
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
+//                        // thread 3
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
 
-                        // thread 4
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
+//                        // thread 4
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
 
-                        // thread 5
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 4*zchunk, 5*zchunk);
+//                        // thread 5
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 4*zchunk, 5*zchunk);
 
-                        // thread 6
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 5*zchunk, 6*zchunk);
-                    }
+//                        // thread 6
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 5*zchunk, 6*zchunk);
+//                    }
 
-                    break;
+//                    break;
 
-                case 7:
+//                case 7:
 
-                    #pragma omp parallel sections
-                    {
-                        // thread 1
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+//                    #pragma omp parallel sections
+//                    {
+//                        // thread 1
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
 
-                        // thread 2
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
+//                        // thread 2
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
 
-                        // thread 3
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
+//                        // thread 3
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
 
-                        // thread 4
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
+//                        // thread 4
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
 
-                        // thread 5
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 4*zchunk, 5*zchunk);
+//                        // thread 5
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 4*zchunk, 5*zchunk);
 
-                        // thread 6
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 5*zchunk, 6*zchunk);
+//                        // thread 6
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 5*zchunk, 6*zchunk);
 
-                        // thread 7
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 6*zchunk, 7*zchunk);
-                    }
+//                        // thread 7
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 6*zchunk, 7*zchunk);
+//                    }
 
-                    break;
+//                    break;
 
-                case 8:
+//                case 8:
 
-                    #pragma omp parallel sections
-                    {
-                        // thread 1
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+//                    #pragma omp parallel sections
+//                    {
+//                        // thread 1
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
 
-                        // thread 2
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
+//                        // thread 2
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
 
-                        // thread 3
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
+//                        // thread 3
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
 
-                        // thread 4
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
+//                        // thread 4
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
 
-                        // thread 5
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 4*zchunk, 5*zchunk);
+//                        // thread 5
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 4*zchunk, 5*zchunk);
 
-                        // thread 6
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 5*zchunk, 6*zchunk);
+//                        // thread 6
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 5*zchunk, 6*zchunk);
 
-                        // thread 7
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 6*zchunk, 7*zchunk);
+//                        // thread 7
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 6*zchunk, 7*zchunk);
 
-                        // thread 8
-                        #pragma omp section
-                        maxDownsampling<unsigned short>(img16, width, height, 7*zchunk, 8*zchunk);
-                    }
+//                        // thread 8
+//                        #pragma omp section
+//                        maxDownsampling<unsigned short>(img16, width, height, 7*zchunk, 8*zchunk);
+//                    }
 
-                    break;
+//                    break;
 
-                default:
-                    break;
-                }
+//                default:
+//                    break;
+//                }
             }
             else
             {
