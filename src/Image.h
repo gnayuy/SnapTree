@@ -56,6 +56,45 @@ void del1dp(T *&p)
     return;
 }
 
+template<class T>
+void maxDownsampling(T *&img, long width, long height, long zstart, long zend)
+{
+    //
+    T A, B;
+    long h = height/2;
+    long w = width/2;
+
+    //
+    for(long z=zstart; z<zend; z++)
+    {
+        for(long i=0; i<h; i++)
+        {
+            for(long j=0; j<w; j++)
+            {
+                //computing max of 8-neighbours
+                A = img[2*z*width*height + 2*i*width + 2*j];
+                B = img[2*z*width*height + 2*i*width + (2*j+1)];
+                if ( B > A ) A = B;
+                B = img[2*z*width*height + (2*i+1)*width + 2*j];
+                if ( B > A ) A = B;
+                B = img[2*z*width*height + (2*i+1)*width + (2*j+1)];
+                if ( B > A ) A = B;
+                B = img[(2*z+1)*width*height + 2*i*width + 2*j];
+                if ( B > A ) A = B;
+                B = img[(2*z+1)*width*height + 2*i*width + (2*j+1)];
+                if ( B > A ) A = B;
+                B = img[(2*z+1)*width*height + (2*i+1)*width + 2*j];
+                if ( B > A ) A = B;
+                B = img[(2*z+1)*width*height + (2*i+1)*width + (2*j+1)];
+                if ( B > A ) A = B;
+
+                //computing max
+                img[z*w*h + i*w + j] = (T) round(A);
+            }
+        }
+    }
+}
+
 //
 int getN(int a, int b);
 

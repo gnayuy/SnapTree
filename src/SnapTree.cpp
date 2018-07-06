@@ -222,14 +222,6 @@ SnapTree::SnapTree(string inputdir, string outputdir, int scales, int genMetaInf
 
         split = true;
     }
-    else
-    {
-        zstart = 0;
-        zend = depth;
-    }
-
-    //
-    resume(zstart, zend);
 
     //
     block_width = 256;
@@ -362,6 +354,16 @@ int SnapTree::init()
         cout<<"Image Info obtained from "<<firstfilepath<<endl;
     }
 
+    if(split==false)
+    {
+        zstart = 0;
+        zend = depth;
+    }
+
+    //
+    resume(zstart, zend);
+
+    //
     cout<<"Image Size "<<width<<"x"<<height<<"x"<<depth<<"x"<<color<<" with "<<datatype<<endl;
 
     //

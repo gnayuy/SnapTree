@@ -147,7 +147,7 @@ void halveSample(uint8* img, int height, int width, int depth, int method, int b
             else if ( method == HALVE_BY_MAX )
             {
                 //#pragma omp parallel for collapse(3)
-                #pragma omp parallel for schedule(dynamic, zchunk) num_threads(threads)
+                //#pragma omp parallel for schedule(dynamic, zchunk) num_threads(threads)
                 for(long z=0; z<d; z++)
                 {
                     for(long i=0; i<h; i++)
@@ -246,34 +246,239 @@ void halveSample(uint8* img, int height, int width, int depth, int method, int b
             else if ( method == HALVE_BY_MAX )
             {
                 // #pragma omp parallel for collapse(3)
-                #pragma omp parallel for schedule(dynamic, zchunk) num_threads(threads)
-                for(long z=0; z<d; z++)
-                {
-                    for(long i=0; i<h; i++)
-                    {
-                        for(long j=0; j<w; j++)
-                        {
-                            //computing max of 8-neighbours
-                            A = img16[2*z*width*height + 2*i*width + 2*j];
-                            B = img16[2*z*width*height + 2*i*width + (2*j+1)];
-                            if ( B > A ) A = B;
-                            B = img16[2*z*width*height + (2*i+1)*width + 2*j];
-                            if ( B > A ) A = B;
-                            B = img16[2*z*width*height + (2*i+1)*width + (2*j+1)];
-                            if ( B > A ) A = B;
-                            B = img16[(2*z+1)*width*height + 2*i*width + 2*j];
-                            if ( B > A ) A = B;
-                            B = img16[(2*z+1)*width*height + 2*i*width + (2*j+1)];
-                            if ( B > A ) A = B;
-                            B = img16[(2*z+1)*width*height + (2*i+1)*width + 2*j];
-                            if ( B > A ) A = B;
-                            B = img16[(2*z+1)*width*height + (2*i+1)*width + (2*j+1)];
-                            if ( B > A ) A = B;
+                //#pragma omp parallel for schedule(dynamic, zchunk) num_threads(threads)
+//                for(long z=0; z<d; z++)
+//                {
+//                    for(long i=0; i<h; i++)
+//                    {
+//                        for(long j=0; j<w; j++)
+//                        {
+//                            //computing max of 8-neighbours
+//                            A = img16[2*z*width*height + 2*i*width + 2*j];
+//                            B = img16[2*z*width*height + 2*i*width + (2*j+1)];
+//                            if ( B > A ) A = B;
+//                            B = img16[2*z*width*height + (2*i+1)*width + 2*j];
+//                            if ( B > A ) A = B;
+//                            B = img16[2*z*width*height + (2*i+1)*width + (2*j+1)];
+//                            if ( B > A ) A = B;
+//                            B = img16[(2*z+1)*width*height + 2*i*width + 2*j];
+//                            if ( B > A ) A = B;
+//                            B = img16[(2*z+1)*width*height + 2*i*width + (2*j+1)];
+//                            if ( B > A ) A = B;
+//                            B = img16[(2*z+1)*width*height + (2*i+1)*width + 2*j];
+//                            if ( B > A ) A = B;
+//                            B = img16[(2*z+1)*width*height + (2*i+1)*width + (2*j+1)];
+//                            if ( B > A ) A = B;
 
-                            //computing max
-                            img16[z*w*h + i*w + j] = (uint16) round(A);
-                        }
+//                            //computing max
+//                            img16[z*w*h + i*w + j] = (uint16) round(A);
+//                        }
+//                    }
+
+//                    //maxDownsampling<unsigned short>(img16,width, height, z);
+//                }
+
+//                maxDownsampling<unsigned short>(img16, width, height, 0, d);
+
+
+                switch(threads)
+                {
+                case 1:
+
+                    maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+                    break;
+
+                case 2:
+
+                    #pragma omp parallel sections
+                    {
+                        // thread 1
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+
+                        // thread 2
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
                     }
+
+                    break;
+
+                case 3:
+
+                    #pragma omp parallel sections
+                    {
+                        // thread 1
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+
+                        // thread 2
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
+
+                        // thread 3
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
+                    }
+
+                    break;
+
+                case 4:
+
+                    #pragma omp parallel sections
+                    {
+                        // thread 1
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+
+                        // thread 2
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
+
+                        // thread 3
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
+
+                        // thread 4
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
+                    }
+
+                    break;
+
+                case 5:
+
+                    #pragma omp parallel sections
+                    {
+                        // thread 1
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+
+                        // thread 2
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
+
+                        // thread 3
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
+
+                        // thread 4
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
+
+                        // thread 5
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 4*zchunk, 5*zchunk);
+                    }
+
+                    break;
+
+                case 6:
+
+                    #pragma omp parallel sections
+                    {
+                        // thread 1
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+
+                        // thread 2
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
+
+                        // thread 3
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
+
+                        // thread 4
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
+
+                        // thread 5
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 4*zchunk, 5*zchunk);
+
+                        // thread 6
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 5*zchunk, 6*zchunk);
+                    }
+
+                    break;
+
+                case 7:
+
+                    #pragma omp parallel sections
+                    {
+                        // thread 1
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+
+                        // thread 2
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
+
+                        // thread 3
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
+
+                        // thread 4
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
+
+                        // thread 5
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 4*zchunk, 5*zchunk);
+
+                        // thread 6
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 5*zchunk, 6*zchunk);
+
+                        // thread 7
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 6*zchunk, 7*zchunk);
+                    }
+
+                    break;
+
+                case 8:
+
+                    #pragma omp parallel sections
+                    {
+                        // thread 1
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 0, zchunk);
+
+                        // thread 2
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, zchunk, 2*zchunk);
+
+                        // thread 3
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 2*zchunk, 3*zchunk);
+
+                        // thread 4
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 3*zchunk, 4*zchunk);
+
+                        // thread 5
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 4*zchunk, 5*zchunk);
+
+                        // thread 6
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 5*zchunk, 6*zchunk);
+
+                        // thread 7
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 6*zchunk, 7*zchunk);
+
+                        // thread 8
+                        #pragma omp section
+                        maxDownsampling<unsigned short>(img16, width, height, 7*zchunk, 8*zchunk);
+                    }
+
+                    break;
+
+                default:
+                    break;
                 }
             }
             else
