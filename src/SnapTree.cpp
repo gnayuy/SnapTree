@@ -552,6 +552,12 @@ int SnapTree::reformat()
 
         cout<<"reformat a sub volume ["<<zs<<", "<<ze<<"]"<<endl;
 
+        if(zdepth<1)
+        {
+            cout<<"reaching the end slice, done\n";
+            return 0;
+        }
+
         //
         auto start_load = std::chrono::high_resolution_clock::now();
 
