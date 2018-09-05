@@ -119,7 +119,7 @@ int main (int argc, const char *argv[])
         exit(1);
     }
 
-    // BigTree
+    // SnapTree
     SnapTree snaptree(inputDir, outputDir, scales, mdata, sx, sy, sz, startz, endz);
 
     //

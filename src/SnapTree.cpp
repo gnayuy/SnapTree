@@ -554,7 +554,7 @@ int SnapTree::reformat()
 
         if(zdepth<1)
         {
-            cout<<"reaching the end slice\n";
+            cout<<"reaching the end slice, done\n";
             return 0;
         }
 
