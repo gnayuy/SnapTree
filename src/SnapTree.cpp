@@ -226,7 +226,7 @@ SnapTree::SnapTree(string inputdir, string outputdir, int scales, int genMetaInf
     //
     block_width = 256;
     block_height = 256;
-    block_depth = 32; //
+    block_depth = 16; //
 
     outDatatype = 1; // 8-bit
 
@@ -551,6 +551,12 @@ int SnapTree::reformat()
         long zdepth = ze - zs;
 
         cout<<"reformat a sub volume ["<<zs<<", "<<ze<<"]"<<endl;
+
+        if(zdepth<1)
+        {
+            cout<<"reaching the end slice\n";
+            return 0;
+        }
 
         //
         auto start_load = std::chrono::high_resolution_clock::now();
