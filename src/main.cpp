@@ -37,6 +37,7 @@ int main (int argc, const char *argv[])
     int mdata = 0;
     int sx=0, sy=0, sz=0;
     int startz=-1, endz=-1;
+    int code = 0; // 0 snaptree; 1 assemble; 2 cc; ...
 
     //
     try
@@ -57,6 +58,7 @@ int main (int argc, const char *argv[])
                 ("z,dimz", "z-dimension", cxxopts::value<int>(sz))
                 ("s,startz", "start z-slice", cxxopts::value<int>(startz))
                 ("e,endz", "end z-slice", cxxopts::value<int>(endz))
+                ("c,code", "0 snaptree; 1 assemble; 2 cc; ...", cxxopts::value<int>(code))
                 ;
 
         auto cmds = options.parse(argc, argv);
@@ -112,6 +114,11 @@ int main (int argc, const char *argv[])
             std::cout << " -- the end z-slice " << cmds["endz"].as<int>() << std::endl;
         }
 
+        if (cmds.count("code"))
+        {
+            std::cout << " -- function code " << cmds["code"].as<int>() << std::endl;
+        }
+
     }
     catch(const cxxopts::OptionException& e)
     {
@@ -119,8 +126,27 @@ int main (int argc, const char *argv[])
         exit(1);
     }
 
-    // SnapTree
-    SnapTree snaptree(inputDir, outputDir, scales, mdata, sx, sy, sz, startz, endz);
+    //
+    if(code==0)
+    {
+        // SnapTree
+        SnapTree snaptree(inputDir, outputDir, scales, mdata, sx, sy, sz, startz, endz);
+    }
+    else if(code==1)
+    {
+        // assemble chunks into a whole image stack
+        SnapTree snaptree;
+        return snaptree.assemble(inputDir, outputDir);
+    }
+    else if(code==2)
+    {
+
+    }
+    else
+    {
+        cout<<"Invalid code "<<code<<endl;
+        return -1;
+    }
 
     //
     return 0;

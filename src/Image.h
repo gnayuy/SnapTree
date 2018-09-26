@@ -145,3 +145,13 @@ int tiffIOTest(char* inputFileName, char *outputFileName, int compressionMethod)
 
 //
 int compareString(const char *ptr0, const char *ptr1, int len);
+
+//
+char *tiffread(char* filename, unsigned char *&p, uint32 &sz0, uint32  &sz1, uint32  &sz2, uint16 &datatype, uint16 &comp);
+
+//
+char *tiffwrite(char* filename, unsigned char *p, uint32 sz0, uint32  sz1, uint32  sz2, uint16 datatype, uint16 comp);
+
+//
+template<typename T>
+double correlationCoefficient(T *img1, T *img2, long n);

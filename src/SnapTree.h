@@ -62,7 +62,8 @@ public:
     ~Layer();
 
 public:
-    uint16 rows, cols, ncubes; // floor(dim_V/height)+1, floor(dim_H/width)+1
+    uint16 rows, cols; // floor(dim_V/height)+1, floor(dim_H/width)+1
+    uint32 ncubes;
     float vs_x, vs_y, vs_z; // voxel sizes
     uint32 dim_V, dim_H, dim_D; // dimensions y, x, z
 
@@ -92,11 +93,26 @@ public:
     map<int, Layer> layers;
 };
 
+// chunks
+class Chunk
+{
+public:
+    Chunk();
+    ~Chunk();
+
+public:
+    string filename;
+    long sx, sy, sz;
+    long ofx, ofy, ofz;
+};
+
+
 //
 class SnapTree
 {
 public:
     SnapTree(string inputdir, string outputdir, int scales, int genMetaInfo=0, int sx=0, int sy=0, int sz=0, int startz=-1, int endz=-1);
+    SnapTree();
     ~SnapTree();
 
 public:
@@ -105,6 +121,7 @@ public:
     int reformat();
     int index();
     void resume(int startz, int endz);
+    int assemble(string inputdir, string output);
 
 public:
     string srcdir, dstdir;

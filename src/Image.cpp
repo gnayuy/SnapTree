@@ -1347,3 +1347,226 @@ int compareString(const char *ptr0, const char *ptr1, int len)
     //
     return 0;
 }
+
+//
+template<typename T>
+double correlationCoefficient(T *img1, T *img2, long n)
+{
+    //
+    double sum1 = 0;
+    double sum2 = 0;
+    double sum12 = 0;
+
+    double squareSum1 = 0;
+    double squareSum2 = 0;
+
+    //
+    for (long i = 0; i < n; i++)
+    {
+        //
+        sum1 += img1[i];
+        sum2 += img2[i];
+
+        //
+        sum12 += img1[i] * img2[i];
+
+        //
+        squareSum1 += img1[i] * img1[i];
+        squareSum2 += img2[i] * img2[i];
+    }
+
+    // correlation coefficient
+    return (n * sum12 - sum1 * sum2) / sqrt((n * squareSum1 - sum1 * sum1) * (n * squareSum2 - sum2* sum2));
+}
+
+//
+char *tiffread(char* filename, unsigned char *&p, uint32 &sz0, uint32  &sz1, uint32  &sz2, uint16 &datatype, uint16 &comp)
+{
+    //
+    TIFF *input = TIFFOpen(filename,"r");
+    if (!input)
+    {
+        return ((char *) "Cannot open the file.");
+    }
+
+    if (!TIFFGetField(input, TIFFTAG_IMAGEWIDTH, &sz0))
+    {
+        TIFFClose(input);
+        return ((char *) "Image width of undefined.");
+    }
+
+    if (!TIFFGetField(input, TIFFTAG_IMAGELENGTH, &sz1))
+    {
+        TIFFClose(input);
+        return ((char *) "Image length of undefined.");
+    }
+
+    if (!TIFFGetField(input, TIFFTAG_BITSPERSAMPLE, &datatype))
+    {
+        TIFFClose(input);
+        return ((char *) "Undefined bits per sample.");
+    }
+
+    uint16 Cpage;
+
+    sz2 = TIFFNumberOfDirectories(input);
+
+    cout<<"sz2 ... "<<sz2<<endl;
+
+    if (!TIFFGetField(input, TIFFTAG_PAGENUMBER, &Cpage, &sz2) || sz2==0)
+    {
+        sz2 = 1;
+        while ( TIFFReadDirectory(input) )
+        {
+            sz2++;
+        }
+    }
+    datatype /= 8;
+
+    long imgsz = (long)sz0*(long)sz1*(long)sz2*(long)datatype;
+
+    //
+    try
+    {
+        p = new unsigned char [imgsz];
+    }
+    catch(...)
+    {
+        return ((char*) "fail to alloc memory for loading a tiff image.");
+    }
+
+    //
+    uint32 rps;
+    int StripsPerImage,LastStripSize;
+
+    //
+    if (!TIFFGetField(input, TIFFTAG_ROWSPERSTRIP, &rps))
+    {
+        TIFFClose(input);
+        return ((char *) "Undefined rowsperstrip.");
+    }
+
+    cout<<"rps "<<rps<<endl;
+
+    if (!TIFFGetField(input, TIFFTAG_COMPRESSION, &comp))
+    {
+        TIFFClose(input);
+        return ((char *) "Undefined compression.");
+    }
+
+    cout<<"comp "<<comp<<endl;
+
+    StripsPerImage =  (sz1 + rps - 1) / rps;
+    LastStripSize = sz1 % rps;
+    if (LastStripSize==0)
+        LastStripSize=rps;
+
+    // reinit
+    if (!TIFFSetDirectory(input, 0))
+    {
+        TIFFClose(input);
+        return ((char *) "fail to setdir.");
+    }
+
+    cout<<"test ... "<<endl;
+
+    unsigned char *buf = p;
+
+    do{
+        for (int i=0; i < StripsPerImage-1; i++)
+        {
+            if (comp==1)
+            {
+                TIFFReadRawStrip(input, i, buf,  rps * sz0 * datatype);
+                buf = buf + rps * sz0 * datatype;
+            }
+            else
+            {
+                TIFFReadEncodedStrip(input, i, buf, rps * sz0 * datatype);
+                buf = buf + rps * sz0 * datatype;
+            }
+        }
+
+        if (comp==1)
+        {
+            TIFFReadRawStrip(input, StripsPerImage-1, buf, LastStripSize * sz0 * datatype);
+        }
+        else
+        {
+            TIFFReadEncodedStrip(input, StripsPerImage-1, buf, LastStripSize * sz0 * datatype);
+        }
+        buf = buf + LastStripSize * sz0 * datatype;
+    }
+    while(TIFFReadDirectory(input));
+
+    //
+    TIFFClose(input);
+
+    cout<<"success read"<<endl;
+
+    //
+    return ((char *) 0);
+}
+
+//
+char *tiffwrite(char* filename, unsigned char *p, uint32 sz0, uint32  sz1, uint32  sz2, uint16 datatype, uint16 comp)
+{
+
+    TIFF *output = TIFFOpen(filename,"w");
+
+    //
+    if(sz2>1)
+    {
+        // 3D TIFF
+        for(long slice=0; slice<sz2; slice++)
+        {
+            TIFFSetDirectory(output,slice);
+
+            TIFFSetField(output, TIFFTAG_IMAGEWIDTH, sz0);
+            TIFFSetField(output, TIFFTAG_IMAGELENGTH, sz1);
+            TIFFSetField(output, TIFFTAG_BITSPERSAMPLE, (uint16)(datatype*8));
+            TIFFSetField(output, TIFFTAG_SAMPLESPERPIXEL, 1);
+            TIFFSetField(output, TIFFTAG_ROWSPERSTRIP, sz1);
+            TIFFSetField(output, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+            TIFFSetField(output, TIFFTAG_COMPRESSION, comp);
+            TIFFSetField(output, TIFFTAG_PLANARCONFIG,PLANARCONFIG_CONTIG);
+            //TIFFSetField(output, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+            TIFFSetField(output, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+
+            // We are writing single page of the multipage file
+            TIFFSetField(output, TIFFTAG_SUBFILETYPE, FILETYPE_PAGE);
+            TIFFSetField(output, TIFFTAG_PAGENUMBER, (uint16)slice, (uint16)sz2);
+
+            // the file has been already opened: rowsPerStrip it is not too large for this image width
+            TIFFWriteEncodedStrip(output, 0, p, sz0 * sz1 * datatype);
+
+            TIFFWriteDirectory(output);
+        }
+    }
+    else
+    {
+        // 2D TIFF
+        TIFFSetField(output, TIFFTAG_IMAGEWIDTH, sz0);
+        TIFFSetField(output, TIFFTAG_IMAGELENGTH, sz1);
+        TIFFSetField(output, TIFFTAG_BITSPERSAMPLE, (uint16)(datatype*8));
+        TIFFSetField(output, TIFFTAG_SAMPLESPERPIXEL, 1);
+        TIFFSetField(output, TIFFTAG_ROWSPERSTRIP, sz1);
+        TIFFSetField(output, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+        TIFFSetField(output, TIFFTAG_COMPRESSION, comp);
+        TIFFSetField(output, TIFFTAG_PLANARCONFIG,PLANARCONFIG_CONTIG);
+        TIFFSetField(output, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+
+        // the file has been already opened: rowsPerStrip it is not too large for this image width
+        TIFFWriteEncodedStrip(output, 0, p, sz0 * sz1 * datatype);
+
+        //
+        TIFFWriteDirectory(output);
+    }
+
+    //
+    TIFFClose(output);
+
+    //
+    return ((char *) 0);
+}
+

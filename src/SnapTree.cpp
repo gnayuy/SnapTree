@@ -211,6 +211,23 @@ int Tree::init(string outdir, long dimx, long dimy, long dimz, long dimc, int by
 }
 
 //
+Chunk::Chunk()
+{
+
+}
+
+Chunk::~Chunk()
+{
+
+}
+
+//
+SnapTree::SnapTree()
+{
+    ubuffer = NULL;
+}
+
+//
 SnapTree::SnapTree(string inputdir, string outputdir, int scales, int genMetaInfo, int sx, int sy, int sz, int startz, int endz)
 {
     // default parameters settings
@@ -972,4 +989,389 @@ void SnapTree::resume(int startz, int endz)
 
 
 }
+
+
+int SnapTree::assemble(string inputdir, string output)
+{
+    // read mdata.bin from inputdir
+    bool mDataDebug = false;
+
+    //
+    DIR *outdir = opendir(inputdir.c_str());
+    if(outdir == NULL)
+    {
+        cout<<"Empty folder: "<<inputdir<<endl;
+        return -1;
+    }
+    else
+    {
+        closedir(outdir);
+    }
+
+    // chunks
+    vector<Chunk> chunks;
+    string chunkNamePrefix = inputdir + "/";
+
+    //
+    string filename = inputdir + "/mdata.bin";
+
+    struct stat info;
+
+    long sx, sy, sz;
+
+    // mdata.bin does not exist
+    if( stat( filename.c_str(), &info ) != 0 )
+    {
+        cout<<filename<<" does not exist"<<endl;
+        return -1;
+    }
+    else
+    {
+//        ifstream inFile;
+//        //inFile.open(filename.c_str(), ios::binary);
+//        inFile.open(filename.c_str());
+
+//        if (!inFile)
+//        {
+//            cerr << "Unable to open file:"<<filename<<endl;
+//            exit(1);
+//        }
+
+//        if (inFile.is_open())
+//        {
+//            Layer layer;
+
+//            char reference_V, reference_H, reference_D;
+
+//            inFile >> meta.mdata_version;
+//            cout<<"meta.mdata_version "<<meta.mdata_version<<endl;
+//            inFile >> reference_V;
+//            cout<<"meta.reference_V "<<reference_V<<endl;
+//            inFile >> reference_H;
+//            cout<<"meta.reference_H "<<reference_H<<endl;
+//            inFile >> reference_D;
+//            cout<<"meta.reference_D "<<reference_D<<endl;
+//            inFile >> layer.vs_x;
+//            inFile >> layer.vs_y;
+//            inFile >> layer.vs_z;
+//            inFile >> layer.vs_x;
+//            inFile >> layer.vs_y;
+//            inFile >> layer.vs_z;
+//            inFile >> meta.org_V;
+//            inFile >> meta.org_H;
+//            inFile >> meta.org_D;
+//            inFile >> layer.dim_V;
+//            inFile >> layer.dim_H;
+//            inFile >> layer.dim_D;
+//            inFile >> layer.rows;
+//            inFile >> layer.cols;
+
+//            meta.reference_V = axis(reference_V);
+//            meta.reference_H = axis(reference_H);
+//            meta.reference_D = axis(reference_D);
+
+
+//            //
+//            if(mDataDebug)
+//            {
+//                cout<<"filename "<<filename<<endl;
+
+//                cout<<"meta.mdata_version "<<meta.mdata_version<<endl;
+//                cout<<"meta.reference_V "<<reference_V<<endl;
+//                cout<<"meta.reference_H "<<reference_H<<endl;
+//                cout<<"meta.reference_D "<<reference_D<<endl;
+//                cout<<"layer.vs_x "<<layer.vs_x<<endl;
+//                cout<<"layer.vs_y "<<layer.vs_y<<endl;
+//                cout<<"layer.vs_z "<<layer.vs_z<<endl;
+//                cout<<"layer.vs_x "<<layer.vs_x<<endl;
+//                cout<<"layer.vs_y "<<layer.vs_y<<endl;
+//                cout<<"layer.vs_z "<<layer.vs_z<<endl;
+//                cout<<"meta.org_V "<<meta.org_V<<endl;
+//                cout<<"meta.org_H "<<meta.org_H<<endl;
+//                cout<<"meta.org_D "<<meta.org_D<<endl;
+//                cout<<"layer.dim_V "<<layer.dim_V<<endl;
+//                cout<<"layer.dim_H "<<layer.dim_H<<endl;
+//                cout<<"layer.dim_D "<<layer.dim_D<<endl;
+//                cout<<"layer.rows "<<layer.rows<<endl;
+//                cout<<"layer.cols "<<layer.cols<<endl;
+//            }
+
+//        }
+
+//        inFile.close();
+
+
+
+        // read mdata.bin
+        FILE *file;
+
+        file = fopen(filename.c_str(), "rb");
+
+        Layer layer;
+
+        fread(&(meta.mdata_version), sizeof(float), 1, file);
+        fread(&(meta.reference_V), sizeof(axis), 1, file); // int
+        fread(&(meta.reference_H), sizeof(axis), 1, file);
+        fread(&(meta.reference_D), sizeof(axis), 1, file);
+        fread(&(layer.vs_x), sizeof(float), 1, file);
+        fread(&(layer.vs_y), sizeof(float), 1, file);
+        fread(&(layer.vs_z), sizeof(float), 1, file);
+        fread(&(layer.vs_x), sizeof(float), 1, file);
+        fread(&(layer.vs_y), sizeof(float), 1, file);
+        fread(&(layer.vs_z), sizeof(float), 1, file);
+        fread(&(meta.org_V), sizeof(float), 1, file);
+        fread(&(meta.org_H), sizeof(float), 1, file);
+        fread(&(meta.org_D), sizeof(float), 1, file);
+        fread(&(layer.dim_V), sizeof(uint32), 1, file);
+        fread(&(layer.dim_H), sizeof(uint32), 1, file);
+        fread(&(layer.dim_D), sizeof(uint32), 1, file);
+        fread(&(layer.rows), sizeof(uint16), 1, file);
+        fread(&(layer.cols), sizeof(uint16), 1, file);
+
+        sx = layer.dim_H;
+        sy = layer.dim_V;
+        sz = layer.dim_D;
+
+        //
+        if(mDataDebug)
+        {
+            cout<<"filename "<<filename<<endl;
+
+            cout<<"meta.mdata_version "<<meta.mdata_version<<endl;
+            cout<<"meta.reference_V "<<meta.reference_V<<endl;
+            cout<<"meta.reference_H "<<meta.reference_H<<endl;
+            cout<<"meta.reference_D "<<meta.reference_D<<endl;
+            cout<<"layer.vs_x "<<layer.vs_x<<endl;
+            cout<<"layer.vs_y "<<layer.vs_y<<endl;
+            cout<<"layer.vs_z "<<layer.vs_z<<endl;
+            cout<<"meta.org_V "<<meta.org_V<<endl;
+            cout<<"meta.org_H "<<meta.org_H<<endl;
+            cout<<"meta.org_D "<<meta.org_D<<endl;
+            cout<<"layer.dim_V "<<layer.dim_V<<endl;
+            cout<<"layer.dim_H "<<layer.dim_H<<endl;
+            cout<<"layer.dim_D "<<layer.dim_D<<endl;
+            cout<<"layer.rows "<<layer.rows<<endl;
+            cout<<"layer.cols "<<layer.cols<<endl;
+        }
+
+        //
+        int n = layer.rows*layer.cols;
+        for(int i=0; i<n; i++)
+        {
+            //
+            YXFolder yxfolder;
+
+            char dirName[21];
+            char fileName[25];
+
+            //
+            fread(&(yxfolder.height), sizeof(uint32), 1, file);
+            fread(&(yxfolder.width), sizeof(uint32), 1, file);
+            fread(&(layer.dim_D), sizeof(uint32), 1, file);
+            fread(&layer.ncubes, sizeof(uint32), 1, file);
+            fread(&(meta.color), sizeof(uint32), 1, file);
+            fread(&(yxfolder.offset_V), sizeof(int), 1, file);
+            fread(&(yxfolder.offset_H), sizeof(int), 1, file);
+            fread(&(yxfolder.lengthDirName), sizeof(uint16), 1, file);
+            fread(&(dirName), yxfolder.lengthDirName, 1, file);
+
+            yxfolder.dirName = dirName;
+
+            //
+            if(mDataDebug)
+            {
+                cout<<"... "<<endl;
+                cout<<"HEIGHT "<<yxfolder.height<<endl;
+                cout<<"WIDTH "<<yxfolder.width<<endl;
+                cout<<"DEPTH "<<layer.dim_D<<endl;
+                cout<<"N_BLOCKS "<<layer.ncubes<<endl;
+                cout<<"N_CHANS "<<meta.color<<endl;
+                cout<<"ABS_V "<<yxfolder.offset_V<<endl;
+                cout<<"ABS_H "<<yxfolder.offset_H<<endl;
+                cout<<"str_size "<<yxfolder.lengthDirName<<endl;
+                cout<<"DIR_NAME "<<yxfolder.dirName<<endl;
+                // printf("DIR_NAME: %s\n",yxfolder.dirName.c_str());
+            }
+
+            //
+            for(int j=0; j<layer.ncubes; j++)
+            {
+                //
+                Cube cube;
+
+                //
+                fread(&(yxfolder.lengthFileName), sizeof(uint16), 1, file);
+                fread(&(fileName), yxfolder.lengthFileName, 1, file);
+                fread(&(cube.depth), sizeof(uint32), 1, file);
+                fread(&(cube.offset_D), sizeof(int), 1, file);
+
+                cube.fileName = fileName;
+
+                yxfolder.cubes.insert(make_pair(cube.offset_D, cube));
+
+                //
+                Chunk chunk;
+                chunk.filename = chunkNamePrefix + yxfolder.dirName + "/" + cube.fileName;
+
+                //cout<<"chunk's name: "<<chunk.filename<<endl;
+
+                chunk.ofx = yxfolder.offset_H;
+                chunk.ofy = yxfolder.offset_V;
+                chunk.ofz = j*layer.dim_D;
+
+                chunk.sx = yxfolder.width;
+                chunk.sy = yxfolder.height;
+                chunk.sz = layer.dim_D;
+
+                chunks.push_back(chunk);
+
+                //cout<<"chunks ... "<<chunks.size()<<endl;
+
+                //
+                if(mDataDebug)
+                {
+                    cout<<"... ..."<<endl;
+                    cout<<"str_size "<<yxfolder.lengthFileName<<endl;
+                    cout<<"FILENAMES["<<cube.offset_D<<"] "<<cube.fileName<<endl;
+                    cout<<"BLOCK_SIZE+i "<<cube.depth<<endl;
+                    cout<<"BLOCK_ABS_D+i "<<cube.offset_D<<endl;
+                }
+            }
+            fread(&(meta.bytesPerVoxel), sizeof(uint32), 1, file);
+
+            if(mDataDebug)
+            {
+                cout<<"N_BYTESxCHAN "<<meta.bytesPerVoxel<<endl;
+            }
+
+            layer.yxfolders.insert(make_pair(yxfolder.dirName, yxfolder));
+        }
+        fclose(file);
+
+        meta.layers.insert(make_pair(0, layer)); // only one layer in this context
+
+    }
+
+    // construct image
+    int nChunks = chunks.size();
+
+    cout<<"image size "<<sx<<"x"<<sy<<"x"<<sz<<endl;
+
+    long imagesz = meta.bytesPerVoxel * sx * sy * sz;
+
+    unsigned char * pImg = NULL;
+
+    try
+    {
+        pImg = new unsigned char [imagesz];
+    }
+    catch(...)
+    {
+        cout<<"failed to allocate memory for the image"<<endl;
+        return -1;
+    }
+
+    //
+    uint16 comp;
+
+    //
+    for(int i=0; i<nChunks; i++)
+    {
+        //
+        cout<<"load image "<<chunks[i].filename<<endl;
+
+        unsigned char *p = NULL;
+        uint32 csx, csy, csz;
+        uint16 cdatatype;
+
+        char * errorMessage = tiffread(const_cast<char *>(chunks[i].filename.c_str()), p, csx, csy, csz, cdatatype, comp);
+
+        //
+        cout<<"put image to "<<chunks[i].ofx<<", "<<chunks[i].ofy<<", "<<chunks[i].ofz<<endl;
+        cout<<"iterate "<<chunks[i].sx<<"x"<<chunks[i].sy<<"x"<<chunks[i].sz<<endl;
+
+        //
+        long xstart = chunks[i].ofx;
+        long xend = xstart + csx;
+        long ystart = chunks[i].ofy;
+        long yend = ystart + csy;
+        long zstart = chunks[i].ofz;
+        long zend = zstart + csz;
+
+        if(meta.bytesPerVoxel == 1)
+        {
+            // 8-bit
+
+            for(long z=zstart; z<zend; z++)
+            {
+                long zoffset = z*sx*sy;
+                long zoff = (z-zstart)*csx*csy;
+                for(long y=ystart; y<yend; y++)
+                {
+                    long yoffset = zoffset + y*sx;
+                    long yoff = zoff + (y-ystart)*csx;
+                    for(long x=xstart; x<xend; x++)
+                    {
+                        pImg[yoffset + x] = p[yoff + x - xstart];
+                    }
+                }
+            }
+        }
+        else if(meta.bytesPerVoxel == 2)
+        {
+            // 16-bit
+
+            uint16 *pImg16bit = (uint16 *)pImg;
+            uint16 *p16bit = (uint16 *)p;
+
+            for(long z=zstart; z<zend; z++)
+            {
+                long zoffset = z*sx*sy;
+                long zoff = (z-zstart)*csx*csy;
+                for(long y=ystart; y<yend; y++)
+                {
+                    long yoffset = zoffset + y*sx;
+                    long yoff = zoff + (y-ystart)*csx;
+                    for(long x=xstart; x<xend; x++)
+                    {
+                        pImg16bit[yoffset + x] = p16bit[yoff + x - xstart];
+                    }
+                }
+            }
+        }
+        else
+        {
+
+        }
+
+
+
+
+        //
+        del1dp(p);
+    }
+
+
+
+    //char *tiffread(char* filename, unsigned char *&p, uint32 &sz0, uint32  &sz1, uint32  &sz2, uint16 &datatype, uint16 &comp);
+
+
+    //char *tiffwrite(char* filename, unsigned char *p, uint32 sz0, uint32  sz1, uint32  sz2, uint16 datatype, uint16 comp);
+
+    char *errorMessage = tiffwrite(const_cast<char *>(output.c_str()), pImg, sx, sy, sz, uint16(meta.bytesPerVoxel), comp);
+
+    //
+    del1dp(pImg);
+
+    //
+    return 0;
+}
+
+
+
+
+
+
+
+
 
